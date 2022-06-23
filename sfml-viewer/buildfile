@@ -1,0 +1,7 @@
+libs = ../libviewer/liba{viewer}
+import libs += sfml-graphics%lib{sfml-graphics}
+
+exe{sfml-viewer}: {hxx ixx txx cxx}{**} $libs
+{
+  test = true
+}
