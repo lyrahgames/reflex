@@ -1,0 +1,14 @@
+libs =
+import libs += glbinding%lib{glbinding}
+import libs += glm%lib{glm}
+
+lib{viewer}: {hxx ixx txx cxx}{**} $libs
+{
+  cxx.export.libs = $libs
+}
+
+{hxx ixx txx}{*}:
+{
+  install = include/libviewer/
+  install.subdir = true
+}

@@ -5,7 +5,7 @@
 //
 #include <glbinding/glbinding.h>
 //
-#include <viewer/viewer.hpp>
+#include <libviewer/viewer.hpp>
 
 namespace viewer::application {
 

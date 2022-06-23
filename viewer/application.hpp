@@ -1,5 +1,4 @@
 #pragma once
-#include <viewer/utility.hpp>
 
 namespace viewer::application {
 

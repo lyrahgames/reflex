@@ -1,11 +1,8 @@
-libs =
+libs = ../libviewer/liba{viewer}
 import libs += glfw3%lib{glfw3}
-import libs += glbinding%lib{glbinding}
-import libs += glm%lib{glm}
 
 exe{viewer}: {hxx ixx txx cxx}{**} $libs
 {
   test = true
 }
 
-cxx.poptions =+ "-I$out_root" "-I$src_root"

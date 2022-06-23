@@ -1,4 +1,4 @@
-#include <viewer/viewer.hpp>
+#include <libviewer/viewer.hpp>
 
 namespace viewer {
 
