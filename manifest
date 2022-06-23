@@ -11,3 +11,7 @@ email: lyrahgames@mailbox.org
 
 depends: * build2 >= 0.14.0
 depends: * bpkg >= 0.14.0
+
+requires: glfw3
+requires: glbinding
+requires: glm
