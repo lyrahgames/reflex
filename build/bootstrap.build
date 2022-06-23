@@ -1,0 +1,7 @@
+project = viewer
+
+using version
+using config
+using test
+using install
+using dist

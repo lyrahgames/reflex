@@ -1,0 +1,13 @@
+: 1
+name: viewer
+version: 0.1.0-a.0.z
+summary: viewer C++ executable
+license: GPL-3.0-or-later ; GNU General Public License v3.0 or later.
+
+description-file: README.md
+url: https://example.org/viewer
+email: lyrahgames@mailbox.org
+#build-error-email: lyrahgames@mailbox.org
+
+depends: * build2 >= 0.14.0
+depends: * bpkg >= 0.14.0
