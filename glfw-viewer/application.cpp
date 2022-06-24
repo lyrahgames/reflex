@@ -42,7 +42,7 @@ void init() {
   if (!viewer) {
     int screen_width, screen_height;
     glfwGetFramebufferSize(window, &screen_width, &screen_height);
-    viewer = new ::viewer::viewer(screen_width, screen_height);
+    viewer = new ::viewer::viewer;
   }
 
   // Update private state.
@@ -95,13 +95,15 @@ void init_window() {
   glfwInit();
 
   // Set required OpenGL context version for the window.
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, viewer::context_version_major);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, viewer::context_version_minor);
   // Force GLFW to use the core profile of OpenGL.
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
   // Create the window to render in.
-  window = glfwCreateWindow(800, 450, "OpenGL Test",  //
+  window = glfwCreateWindow(viewer::initial_screen_width,
+                            viewer::initial_screen_height,  //
+                            viewer::title,                  //
                             nullptr, nullptr);
 
   // Initialize the OpenGL context for the current window by using glbinding.

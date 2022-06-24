@@ -5,7 +5,14 @@ namespace viewer {
 
 class viewer {
  public:
-  viewer(int w, int h);
+  static constexpr const char* title = "OpenGL Basic Framework";
+  static constexpr int initial_screen_width = 500;
+  static constexpr int initial_screen_height = 500;
+
+  static constexpr size_t context_version_major = 3;
+  static constexpr size_t context_version_minor = 3;
+
+  viewer(int w = initial_screen_width, int h = initial_screen_height);
   ~viewer();
 
   void init_shader();

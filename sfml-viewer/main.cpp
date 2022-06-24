@@ -7,21 +7,20 @@ using namespace gl;
 #include <libviewer/viewer.ipp>
 
 int main() {
+  using viewer::viewer;
   sf::ContextSettings settings;
-  settings.depthBits = 24;
-  settings.stencilBits = 8;
-  settings.antialiasingLevel = 4;
-  settings.majorVersion = 3;
-  settings.minorVersion = 0;
+  settings.majorVersion = viewer::context_version_major;
+  settings.minorVersion = viewer::context_version_minor;
 
-  sf::Window window(sf::VideoMode(800, 450), "OpenGL Test", sf::Style::Default,
-                    settings);
+  sf::Window window(sf::VideoMode(viewer::initial_screen_width,
+                                  viewer::initial_screen_height),
+                    viewer::title, sf::Style::Default, settings);
   window.setVerticalSyncEnabled(true);
   window.setActive(true);
 
   glbinding::initialize(sf::Context::getFunction);
 
-  viewer::viewer viewer(800, 450);
+  viewer viewer;
 
   bool running = true;
   while (running) {
