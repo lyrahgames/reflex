@@ -39,11 +39,7 @@ void init() {
 
   init_window();
 
-  if (!viewer) {
-    int screen_width, screen_height;
-    glfwGetFramebufferSize(window, &screen_width, &screen_height);
-    viewer = new ::viewer::viewer;
-  }
+  if (!viewer) viewer = new ::viewer::viewer;
 
   // Update private state.
   is_initialized = true;
