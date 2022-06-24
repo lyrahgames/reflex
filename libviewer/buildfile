@@ -1,8 +1,7 @@
 libs =
-import libs += glbinding%lib{glbinding}
 import libs += glm%lib{glm}
 
-lib{viewer}: {hxx ixx txx cxx}{**} $libs
+lib{viewer}: {hxx ixx txx}{**} $libs
 {
   cxx.export.libs = $libs
 }

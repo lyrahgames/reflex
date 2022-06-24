@@ -1,5 +1,6 @@
-libs = ../libviewer/liba{viewer}
+libs = ../libviewer/lib{viewer}
 import libs += sfml-graphics%lib{sfml-graphics}
+import libs += glbinding%lib{glbinding}
 
 exe{sfml-viewer}: {hxx ixx txx cxx}{**} $libs
 {

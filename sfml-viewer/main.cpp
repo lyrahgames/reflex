@@ -1,8 +1,10 @@
 #include <SFML/Graphics.hpp>
 //
+#include <glbinding/gl/gl.h>
 #include <glbinding/glbinding.h>
+using namespace gl;
 //
-#include <libviewer/viewer.hpp>
+#include <libviewer/viewer.ipp>
 
 int main() {
   sf::ContextSettings settings;

@@ -1,5 +1,6 @@
-libs = ../libviewer/liba{viewer}
+libs = ../libviewer/lib{viewer}
 import libs += glfw3%lib{glfw3}
+import libs += glbinding%lib{glbinding}
 
 exe{viewer}: {hxx ixx txx cxx}{**} $libs
 {
