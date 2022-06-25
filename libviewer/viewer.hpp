@@ -1,4 +1,5 @@
 #pragma once
+#include <libviewer/camera.hpp>
 #include <libviewer/shader.hpp>
 #include <libviewer/utility.hpp>
 
@@ -23,6 +24,13 @@ class viewer {
   void update();
   void render();
 
+  void update_view();
+  void turn(const vec2& mouse_move);
+  void shift(const vec2& mouse_move);
+  void zoom(const vec2& mouse_move);
+  void set_y_as_up();
+  void set_z_as_up();
+
  private:
   int screen_width, screen_height;
   time_type time = clock::now();
@@ -34,6 +42,24 @@ class viewer {
   GLint mvp_location, vpos_location, vcol_location;
   // Transformation Matrices
   mat4 model, view, projection;
+
+  // World Origin
+  vec3 origin;
+  // Basis Vectors of Right-Handed Coordinate System
+  vec3 up{0, 1, 0};
+  vec3 right{1, 0, 0};
+  vec3 front{0, 0, 1};
+  // Spherical/Horizontal Coordinates of Camera
+  float radius = 10;
+  float altitude = 0;
+  float azimuth = 0;
+
+  // Mouse Interaction
+  vec2 old_mouse_pos;
+  vec2 mouse_pos;
+  bool view_should_update = true;
+
+  camera cam{};
 };
 
 }  // namespace viewer

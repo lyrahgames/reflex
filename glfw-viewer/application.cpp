@@ -31,6 +31,8 @@ struct raii_destructor_t {
 // Create window with OpenGL context.
 void init_window();
 
+void process_events();
+
 }  // namespace
 
 void init() {
@@ -68,6 +70,7 @@ void run() {
   while (!glfwWindowShouldClose(window)) {
     // Handle user and OS events.
     glfwPollEvents();
+    process_events();
 
     viewer->update();
     viewer->render();
@@ -119,7 +122,13 @@ void init_window() {
                                  [](GLFWwindow* window, int width, int height) {
                                    viewer->resize(width, height);
                                  });
+
+  glfwSetScrollCallback(window, [](GLFWwindow* window, double x, double y) {
+    viewer->zoom({x, y});
+  });
 }
+
+void process_events() {}
 
 }  // namespace
 

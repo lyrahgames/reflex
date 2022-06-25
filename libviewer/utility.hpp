@@ -2,6 +2,7 @@
 #include <chrono>
 #include <iomanip>
 #include <iostream>
+#include <numbers>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -18,6 +19,8 @@ using namespace std;
 using clock = chrono::high_resolution_clock;
 using time_type = decltype(clock::now());
 using chrono::duration;
+
+constexpr auto pi = std::numbers::pi_v<float>;
 
 using glm::mat4;
 using glm::vec2;
