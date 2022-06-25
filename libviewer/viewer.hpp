@@ -1,4 +1,5 @@
 #pragma once
+#include <libviewer/shader.hpp>
 #include <libviewer/utility.hpp>
 
 namespace viewer {
@@ -29,7 +30,7 @@ class viewer {
   GLuint vertex_array;
   GLuint vertex_buffer;
   // Shader Handles
-  GLuint program;
+  shader_program program;
   GLint mvp_location, vpos_location, vcol_location;
   // Transformation Matrices
   mat4 model, view, projection;

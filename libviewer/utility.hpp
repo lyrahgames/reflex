@@ -9,6 +9,8 @@
 #include <glm/glm.hpp>
 //
 #include <glm/ext.hpp>
+//
+#include <lyrahgames/xstd/builtin_types.hpp>
 
 namespace viewer {
 
@@ -21,5 +23,7 @@ using glm::mat4;
 using glm::vec2;
 using glm::vec3;
 using glm::vec4;
+
+using namespace lyrahgames::xstd;
 
 }  // namespace viewer

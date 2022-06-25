@@ -1,4 +1,5 @@
 libs =
+import libs += lyrahgames-xstd%lib{lyrahgames-xstd}
 import libs += glm%lib{glm}
 
 lib{viewer}: {hxx ixx txx}{**} $libs
