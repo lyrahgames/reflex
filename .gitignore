@@ -4,6 +4,8 @@
 !*.h
 !*.c
 !*.hpp
+!*.ipp
+!*.tpp
 !*.cpp
 !*.in
 

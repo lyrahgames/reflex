@@ -1,5 +1,6 @@
 #pragma once
 #include <libviewer/camera.hpp>
+#include <libviewer/default_shader.hpp>
 #include <libviewer/model.hpp>
 #include <libviewer/shader.hpp>
 #include <libviewer/utility.hpp>
@@ -9,8 +10,8 @@ namespace viewer {
 class viewer {
  public:
   static constexpr const char* title = "OpenGL Basic Framework";
-  static constexpr int initial_screen_width = 500;
-  static constexpr int initial_screen_height = 500;
+  static constexpr int initial_screen_width = 800;
+  static constexpr int initial_screen_height = 450;
 
   static constexpr size_t context_version_major = 3;
   static constexpr size_t context_version_minor = 3;
@@ -18,14 +19,10 @@ class viewer {
   viewer(int w = initial_screen_width, int h = initial_screen_height);
   ~viewer();
 
-  void init_shader();
-  void init_vertex_data();
   void resize(int width, int height);
   void resize();
-  void setup();
   void update();
   void render();
-  void cleanup();
 
   void update_view();
   void turn(const vec2& angle);
@@ -40,14 +37,8 @@ class viewer {
  private:
   int screen_width, screen_height;
   time_type time = clock::now();
-  // Vertex Data Handles
-  // GLuint vertex_array;
-  // GLuint vertex_buffer;
-  // Shader Handles
-  shader_program shader;
-  // GLint mvp_location, vpos_location, vcol_location;
-  // Transformation Matrices
-  // mat4 model, view, projection;
+
+  shader_program shader = default_shader();
 
   // World Origin
   vec3 origin;
