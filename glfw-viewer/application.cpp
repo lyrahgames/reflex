@@ -124,7 +124,7 @@ void init_window() {
                                  });
 
   glfwSetScrollCallback(window, [](GLFWwindow* window, double x, double y) {
-    viewer->zoom({x, y});
+    viewer->zoom(0.1 * y);
   });
 }
 

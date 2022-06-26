@@ -31,7 +31,7 @@ int main() {
       else if (event.type == sf::Event::Resized)
         viewer.resize(event.size.width, event.size.height);
       else if (event.type == sf::Event::MouseWheelScrolled)
-        viewer.zoom({0, event.mouseWheelScroll.delta});
+        viewer.zoom(0.1 * event.mouseWheelScroll.delta);
     }
 
     viewer.update();

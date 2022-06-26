@@ -27,7 +27,7 @@ class viewer {
   void update_view();
   void turn(const vec2& mouse_move);
   void shift(const vec2& mouse_move);
-  void zoom(const vec2& mouse_move);
+  void zoom(float scale);
   void set_y_as_up();
   void set_z_as_up();
 
