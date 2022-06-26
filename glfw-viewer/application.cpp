@@ -18,6 +18,10 @@ GLFWwindow* window = nullptr;
 bool is_initialized = false;
 ::viewer::viewer* viewer = nullptr;
 
+// Mouse Interaction
+vec2 old_mouse_pos;
+vec2 mouse_pos;
+
 // RAII Destructor Simulator
 // To make sure that the application::free function
 // can be viewed as a destructor and adheres to RAII principle,
@@ -101,8 +105,8 @@ void init_window() {
 
   // Create the window to render in.
   window = glfwCreateWindow(viewer::initial_screen_width,
-                            viewer::initial_screen_height,  //
-                            viewer::title,                  //
+                            viewer::initial_screen_height,              //
+                            (string("GLFW ") + viewer::title).c_str(),  //
                             nullptr, nullptr);
 
   // Initialize the OpenGL context for the current window by using glbinding.
@@ -128,7 +132,22 @@ void init_window() {
   });
 }
 
-void process_events() {}
+void process_events() {
+  // Compute the mouse move vector.
+  old_mouse_pos = mouse_pos;
+  double xpos, ypos;
+  glfwGetCursorPos(window, &xpos, &ypos);
+  mouse_pos = vec2{xpos, ypos};
+  const auto mouse_move = mouse_pos - old_mouse_pos;
+
+  // Left mouse button should rotate the camera by using spherical coordinates.
+  if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
+    viewer->turn(0.01f * mouse_move);
+
+  // Right mouse button should translate the camera.
+  if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS)
+    viewer->shift(mouse_move);
+}
 
 }  // namespace
 

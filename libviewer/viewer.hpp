@@ -25,8 +25,8 @@ class viewer {
   void render();
 
   void update_view();
-  void turn(const vec2& mouse_move);
-  void shift(const vec2& mouse_move);
+  void turn(const vec2& angle);
+  void shift(const vec2& pixels);
   void zoom(float scale);
   void set_y_as_up();
   void set_z_as_up();
@@ -54,9 +54,6 @@ class viewer {
   float altitude = 0;
   float azimuth = 0;
 
-  // Mouse Interaction
-  vec2 old_mouse_pos;
-  vec2 mouse_pos;
   bool view_should_update = true;
 
   camera cam{};
