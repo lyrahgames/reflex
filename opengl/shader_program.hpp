@@ -3,13 +3,13 @@
 
 namespace opengl {
 
+struct shader_link_error : runtime_error {
+  using base = runtime_error;
+  shader_link_error(auto&& x) : base(std::forward<decltype(x)>(x)) {}
+};
+
 class shader_program {
  public:
-  struct link_error : runtime_error {
-    using base = runtime_error;
-    link_error(auto&& x) : base(std::forward<decltype(x)>(x)) {}
-  };
-
   shader_program() = default;
 
   shader_program(const vertex_shader& vs,
@@ -101,11 +101,11 @@ class shader_program {
   }
 
   void throw_link_error() {
-    throw link_error("Failed to link shader program.");
+    throw shader_link_error("Failed to link shader program.");
   }
 
   void throw_link_error(const string& info_log) {
-    throw link_error("Failed to link shader program.\n" + info_log);
+    throw shader_link_error("Failed to link shader program.\n" + info_log);
   }
 
   void link() { glLinkProgram(handle); }
