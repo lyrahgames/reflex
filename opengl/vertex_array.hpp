@@ -1,7 +1,7 @@
 #pragma once
-#include <libviewer/utility.hpp>
+#include <opengl/utility.hpp>
 
-namespace viewer {
+namespace opengl {
 
 class vertex_array {
  public:
@@ -27,4 +27,4 @@ class vertex_array {
   GLuint handle{};  // value zero is ignored
 };
 
-}  // namespace viewer
+}  // namespace opengl

@@ -1,5 +1,6 @@
 #pragma once
-#include <libviewer/shader.hpp>
+#include <libviewer/utility.hpp>
+#include <opengl/shader.hpp>
 
 namespace viewer {
 

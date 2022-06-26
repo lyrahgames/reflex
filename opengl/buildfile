@@ -1,0 +1,14 @@
+libs =
+import libs += lyrahgames-xstd%lib{lyrahgames-xstd}
+import libs += glm%lib{glm}
+
+lib{opengl}: {hxx ixx txx}{**} $libs
+{
+  cxx.export.libs = $libs
+}
+
+{hxx ixx txx}{*}:
+{
+  install = include/opengl/
+  install.subdir = true
+}

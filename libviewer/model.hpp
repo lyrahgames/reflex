@@ -1,8 +1,8 @@
 #pragma once
-#include <libviewer/buffer.hpp>
-#include <libviewer/shader.hpp>
 #include <libviewer/utility.hpp>
-#include <libviewer/vertex_array.hpp>
+#include <opengl/buffer.hpp>
+#include <opengl/shader.hpp>
+#include <opengl/vertex_array.hpp>
 
 namespace viewer {
 

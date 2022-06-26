@@ -1,7 +1,7 @@
 #pragma once
-#include <libviewer/utility.hpp>
+#include <opengl/utility.hpp>
 
-namespace viewer {
+namespace opengl {
 
 template <auto buffer_type>
 class buffer {
@@ -31,4 +31,4 @@ class buffer {
 using vertex_buffer = buffer<GL_ARRAY_BUFFER>;
 using element_buffer = buffer<GL_ELEMENT_ARRAY_BUFFER>;
 
-}  // namespace viewer
+}  // namespace opengl

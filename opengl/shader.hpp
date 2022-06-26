@@ -1,7 +1,7 @@
 #pragma once
-#include <libviewer/utility.hpp>
+#include <opengl/utility.hpp>
 
-namespace viewer {
+namespace opengl {
 
 constexpr auto shader_object_type_name(GLenum shader_object_type) -> czstring {
   switch (shader_object_type) {
@@ -300,4 +300,4 @@ class shader_program {
   GLuint handle{};
 };
 
-}  // namespace viewer
+}  // namespace opengl

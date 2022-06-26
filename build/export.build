@@ -1,6 +1,9 @@
 $out_root/
 {
-  include libviewer/
+  include ./
 }
 
-export $out_root/libviewer/$import.target
+if ($import.target == "libviewer")
+  export $out_root/libviewer/$import.target
+elif ($import.target == "opengl")
+  export $out_root/opengl/$import.target

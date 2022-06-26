@@ -1,7 +1,7 @@
 #pragma once
-#include <libviewer/utility.hpp>
+#include <opengl/utility.hpp>
 
-namespace viewer {
+namespace opengl {
 
 class camera {
  public:
@@ -100,4 +100,4 @@ class camera {
   mat4 view{1};
 };
 
-}  // namespace viewer
+}  // namespace opengl
