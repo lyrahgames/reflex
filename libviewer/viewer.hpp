@@ -2,8 +2,6 @@
 #include <libviewer/default_shader.hpp>
 #include <libviewer/model.hpp>
 #include <libviewer/utility.hpp>
-#include <opengl/camera.hpp>
-#include <opengl/shader.hpp>
 
 namespace viewer {
 

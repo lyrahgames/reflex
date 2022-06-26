@@ -2,7 +2,6 @@
 #include <fstream>
 //
 #include <libviewer/model.hpp>
-#include <libviewer/utility.hpp>
 
 namespace viewer {
 

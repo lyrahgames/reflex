@@ -1,13 +1,7 @@
 #pragma once
-#include <array>
-#include <bit>
-#include <chrono>
-#include <iomanip>
-#include <iostream>
 #include <numbers>
 #include <stdexcept>
 #include <string>
-#include <vector>
 //
 #include <glm/glm.hpp>
 //
@@ -18,10 +12,6 @@
 namespace opengl {
 
 using namespace std;
-using clock = chrono::high_resolution_clock;
-using time_type = decltype(clock::now());
-using chrono::duration;
-
 constexpr auto pi = std::numbers::pi_v<float>;
 
 using glm::mat4;
