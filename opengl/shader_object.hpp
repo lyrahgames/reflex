@@ -27,15 +27,20 @@ constexpr struct warnings_as_errors_t {
 constexpr struct ignore_warnings_t {
 } ignore_warnings{};
 
+struct shader_compile_error : runtime_error {
+  using base = runtime_error;
+  shader_compile_error(auto&& x) : base(forward<decltype(x)>(x)) {}
+};
+
 template <GLenum shader_object_type>
 class shader_object {
   using string = std::string;
 
  public:
-  struct compile_error : runtime_error {
-    using base = runtime_error;
-    compile_error(auto&& x) : base(forward<decltype(x)>(x)) {}
-  };
+  // struct shader_compile_error : runtime_error {
+  //   using base = runtime_error;
+  //   shader_compile_error(auto&& x) : base(forward<decltype(x)>(x)) {}
+  // };
 
   static constexpr auto type() -> GLenum { return shader_object_type; }
   static constexpr auto type_name() -> czstring {
@@ -111,13 +116,13 @@ class shader_object {
   }
 
   void throw_compile_error() {
-    throw compile_error(string("Failed to compile ") + type_name() +
-                        " shader object.");
+    throw shader_compile_error(string("Failed to compile ") + type_name() +
+                               " shader object.");
   }
 
   void throw_compile_error(const string& info_log) {
-    throw compile_error(string("Failed to compile ") + type_name() +
-                        " shader object.\n" + info_log);
+    throw shader_compile_error(string("Failed to compile ") + type_name() +
+                               " shader object.\n" + info_log);
   }
 
   void compile(czstring source) {
