@@ -1,5 +1,6 @@
 include ../opengl/
 libs = ../opengl/lib{opengl}
+import libs += assimp%lib{assimp}
 
 lib{viewer}: {hxx ixx txx}{**} $libs
 {

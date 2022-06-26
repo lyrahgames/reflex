@@ -18,3 +18,4 @@ requires: glm
 requires: sflm-graphics
 requires: glfw3
 requires: glbinding
+requires: assimp

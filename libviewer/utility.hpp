@@ -2,6 +2,7 @@
 #include <array>
 #include <bit>
 #include <chrono>
+#include <cmath>
 #include <iomanip>
 #include <iostream>
 #include <numbers>
