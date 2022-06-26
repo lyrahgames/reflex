@@ -1,8 +1,6 @@
 #include <libviewer/viewer.hpp>
 //
 #include <libviewer/stl_loader.hpp>
-//
-#include <libviewer/default_shader.ipp>
 
 namespace viewer {
 
