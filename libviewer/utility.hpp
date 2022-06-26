@@ -1,4 +1,6 @@
 #pragma once
+#include <array>
+#include <bit>
 #include <chrono>
 #include <iomanip>
 #include <iostream>

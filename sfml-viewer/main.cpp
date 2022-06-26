@@ -10,11 +10,15 @@ using namespace gl;
 
 using namespace std;
 
-int main() {
+int main(int argc, char* argv[]) {
   using viewer::viewer;
   sf::ContextSettings settings;
   settings.majorVersion = viewer::context_version_major;
   settings.minorVersion = viewer::context_version_minor;
+  // These values need to be set when 3D rendering is required.
+  settings.depthBits = 24;
+  settings.stencilBits = 8;
+  settings.antialiasingLevel = 4;
 
   sf::Window window(sf::VideoMode(viewer::initial_screen_width,
                                   viewer::initial_screen_height),
@@ -26,9 +30,9 @@ int main() {
   glbinding::initialize(sf::Context::getFunction);
 
   viewer viewer;
+  viewer.load_model(argv[1]);
 
   auto old_mouse_pos = sf::Mouse::getPosition(window);
-
   bool running = true;
   while (running) {
     sf::Event event;

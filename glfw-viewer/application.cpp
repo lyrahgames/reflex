@@ -39,13 +39,14 @@ void process_events();
 
 }  // namespace
 
-void init() {
+void init(int argc, char** argv) {
   // Do not initialize if it has already been done.
   if (is_initialized) return;
 
   init_window();
 
   if (!viewer) viewer = new ::viewer::viewer;
+  viewer->load_model(argv[1]);
 
   // Update private state.
   is_initialized = true;

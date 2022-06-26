@@ -1,5 +1,6 @@
 #pragma once
 #include <libviewer/camera.hpp>
+#include <libviewer/model.hpp>
 #include <libviewer/shader.hpp>
 #include <libviewer/utility.hpp>
 
@@ -21,8 +22,10 @@ class viewer {
   void init_vertex_data();
   void resize(int width, int height);
   void resize();
+  void setup();
   void update();
   void render();
+  void cleanup();
 
   void update_view();
   void turn(const vec2& angle);
@@ -31,17 +34,20 @@ class viewer {
   void set_y_as_up();
   void set_z_as_up();
 
+  void fit_view();
+  void load_model(czstring file_path);
+
  private:
   int screen_width, screen_height;
   time_type time = clock::now();
   // Vertex Data Handles
-  GLuint vertex_array;
-  GLuint vertex_buffer;
+  // GLuint vertex_array;
+  // GLuint vertex_buffer;
   // Shader Handles
-  shader_program program;
-  GLint mvp_location, vpos_location, vcol_location;
+  shader_program shader;
+  // GLint mvp_location, vpos_location, vcol_location;
   // Transformation Matrices
-  mat4 model, view, projection;
+  // mat4 model, view, projection;
 
   // World Origin
   vec3 origin;
@@ -57,6 +63,12 @@ class viewer {
   bool view_should_update = true;
 
   camera cam{};
+
+  model mesh{};
+
+  vec3 aabb_min{};
+  vec3 aabb_max{};
+  float bounding_radius;
 };
 
 }  // namespace viewer

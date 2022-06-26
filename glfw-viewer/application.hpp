@@ -2,7 +2,7 @@
 
 namespace viewer::application {
 
-void init();
+void init(int argc = 0, char** argv = nullptr);
 void run();
 void free();
 
