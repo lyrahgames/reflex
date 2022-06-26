@@ -1,8 +1,6 @@
 #include <libviewer/viewer.hpp>
 //
-#include <assimp/postprocess.h>
-#include <assimp/Importer.hpp>
-// #include <libviewer/stl_loader.hpp>
+#include <libviewer/loader.hpp>
 
 namespace viewer {
 
@@ -56,8 +54,8 @@ void viewer::render() {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
   shader.bind();
-  // mesh.render();
-  for (auto& mesh : meshes) mesh.render();
+  // for (auto& mesh : meshes) mesh.render();
+  scene.render();
 }
 
 void viewer::update_view() {
@@ -118,7 +116,7 @@ void viewer::fit_view() {
   // AABB computation
   aabb_min = {INFINITY, INFINITY, INFINITY};
   aabb_max = {-INFINITY, -INFINITY, -INFINITY};
-  for (auto& mesh : meshes) {
+  for (auto& mesh : scene.meshes) {
     for (const auto& vertex : mesh.vertices) {
       aabb_min = min(aabb_min, vertex.position);
       aabb_max = max(aabb_max, vertex.position);
@@ -134,73 +132,24 @@ void viewer::fit_view() {
 }
 
 void viewer::load_model(czstring file_path) {
-  // auto start = clock::now();
-  // stl_binary_format stl_data{file_path};
-  // auto end = clock::now();
-  // auto time = duration<float>(end - start).count();
-  // cout << "stl file:\n"
-  //      << "load time = " << time << " s" << '\n'
-  //      << "triangle count = " << stl_data.triangles.size() << '\n'
-  //      << endl;
+  // Assimp::Importer importer{};
+  // const auto scene =
+  //     importer.ReadFile(file_path, aiProcess_Triangulate | aiProcess_FlipUVs |
+  //                                      aiProcess_GenNormals);
+  // if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
+  //   throw runtime_error("Assimp failed to load the model from the file.");
+  // process_node(scene->mRootNode, scene);
 
-  // start = clock::now();
-  // transform(stl_data, mesh);
-  // end = clock::now();
-  // time = duration<float>(end - start).count();
-  // cout << "mesh transform:\n"
-  //      << "time = " << time << " s" << '\n'
-  //      << "vertices = " << mesh.vertices.size() << '\n'
-  //      << "faces = " << mesh.faces.size() << '\n'
-  //      << endl;
-
-  Assimp::Importer importer{};
-  const auto scene =
-      importer.ReadFile(file_path, aiProcess_Triangulate | aiProcess_FlipUVs |
-                                       aiProcess_GenNormals);
-  if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
-    throw runtime_error("Assimp failed to load the model from the file.");
-  process_node(scene->mRootNode, scene);
+  loader::load(file_path, scene);
 
   fit_view();
-  // mesh.setup(shader);
-  // mesh.update();
 
-  for (auto& mesh : meshes) {
-    mesh.setup(shader);
-    mesh.update();
-  }
-}
-
-void viewer::process_node(aiNode* node, const aiScene* scene) {
-  // process all the node's meshes (if any)
-  for (size_t i = 0; i < node->mNumMeshes; i++) {
-    auto mesh = scene->mMeshes[node->mMeshes[i]];
-    meshes.push_back(process_mesh(mesh, scene));
-  }
-  // then do the same for each of its children
-  for (size_t i = 0; i < node->mNumChildren; i++)
-    process_node(node->mChildren[i], scene);
-}
-
-auto viewer::process_mesh(aiMesh* mesh, const aiScene* scene) -> model {
-  model result{};
-  for (size_t i = 0; i < mesh->mNumVertices; i++) {
-    model::vertex vertex;
-    vertex.position = {mesh->mVertices[i].x,  //
-                       mesh->mVertices[i].y,  //
-                       mesh->mVertices[i].z};
-    vertex.normal = {mesh->mNormals[i].x,  //
-                     mesh->mNormals[i].y,  //
-                     mesh->mNormals[i].z};
-    result.vertices.push_back(vertex);
-  }
-  for (size_t i = 0; i < mesh->mNumFaces; i++) {
-    auto face = mesh->mFaces[i];
-    // for (size_t j = 0; j < face.mNumIndices; j++)
-    result.faces.push_back(
-        {face.mIndices[0], face.mIndices[1], face.mIndices[2]});
-  }
-  return result;
+  // for (auto& mesh : meshes) {
+  //   mesh.setup(shader);
+  //   mesh.update();
+  // }
+  scene.setup(shader);
+  scene.update();
 }
 
 }  // namespace viewer

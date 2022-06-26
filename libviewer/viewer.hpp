@@ -1,7 +1,7 @@
 #pragma once
-#include <assimp/scene.h>
 #include <libviewer/default_shader.hpp>
 #include <libviewer/model.hpp>
+#include <libviewer/scene.hpp>
 #include <libviewer/utility.hpp>
 
 namespace viewer {
@@ -33,9 +33,6 @@ class viewer {
   void fit_view();
   void load_model(czstring file_path);
 
-  void process_node(aiNode* node, const aiScene* scene);
-  auto process_mesh(aiMesh* mesh, const aiScene* scene) -> model;
-
  private:
   int screen_width, screen_height;
   time_type time = clock::now();
@@ -57,8 +54,7 @@ class viewer {
 
   camera cam{};
 
-  model mesh{};
-  vector<model> meshes{};
+  struct scene scene;
 
   vec3 aabb_min{};
   vec3 aabb_max{};
