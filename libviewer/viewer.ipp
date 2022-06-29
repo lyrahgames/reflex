@@ -54,8 +54,7 @@ void viewer::render() {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
   shader.bind();
-  // for (auto& mesh : meshes) mesh.render();
-  scene.render();
+  device_scene.render();
 }
 
 void viewer::update_view() {
@@ -132,24 +131,9 @@ void viewer::fit_view() {
 }
 
 void viewer::load_model(czstring file_path) {
-  // Assimp::Importer importer{};
-  // const auto scene =
-  //     importer.ReadFile(file_path, aiProcess_Triangulate | aiProcess_FlipUVs |
-  //                                      aiProcess_GenNormals);
-  // if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
-  //   throw runtime_error("Assimp failed to load the model from the file.");
-  // process_node(scene->mRootNode, scene);
-
   loader::load(file_path, scene);
-
   fit_view();
-
-  // for (auto& mesh : meshes) {
-  //   mesh.setup(shader);
-  //   mesh.update();
-  // }
-  scene.setup(shader);
-  scene.update();
+  device_scene.load(scene);
 }
 
 }  // namespace viewer

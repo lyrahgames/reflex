@@ -8,7 +8,7 @@
 namespace viewer {
 
 struct loader {
-  static void transform(const aiMesh* raw, model& mesh) {
+  static void transform(const aiMesh* raw, mesh& mesh) {
     // Get all the vertices.
     mesh.vertices.resize(raw->mNumVertices);
     for (size_t i = 0; i < raw->mNumVertices; i++) {
