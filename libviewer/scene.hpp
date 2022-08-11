@@ -81,14 +81,30 @@ struct mesh : basic_mesh {
 };
 
 struct scene {
-  scene() = default;
+  scene() {
+    // Generate default one-pixel texture which is white to indicate no texture.
+    texture2 texture;
+    texture.bind();
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D,  //
+                    GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    const unsigned char data[] = {255, 255, 255};
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1, 1, 0, GL_RGB, GL_UNSIGNED_BYTE,
+                 data);
+
+    textures.emplace("", move(texture));
+  }
 
   void update() {
     for (auto& material : materials) {
-      if (material.texture_path.empty()) {
-        material.device_texture = 0;
-        continue;
-      }
+      // if (material.texture_path.empty()) {
+      //   material.device_texture = 0;
+      //   continue;
+      // }
 
       auto it = textures.find(material.texture_path);
       if (it != end(textures)) {
