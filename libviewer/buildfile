@@ -1,6 +1,7 @@
 include ../opengl/
 libs = ../opengl/lib{opengl}
 import libs += assimp%lib{assimp}
+import libs += stb_image%lib{stb_image}
 
 lib{viewer}: {hxx ixx txx}{**} $libs
 {

@@ -1,6 +1,9 @@
 #include <libviewer/viewer.hpp>
 //
 #include <libviewer/loader.hpp>
+//
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
 
 namespace viewer {
 
@@ -53,8 +56,7 @@ void viewer::render() {
   // Clear the screen.
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-  shader.bind();
-  device_scene.render();
+  scene.render(shader);
 }
 
 void viewer::update_view() {
@@ -131,9 +133,33 @@ void viewer::fit_view() {
 }
 
 void viewer::load_model(czstring file_path) {
-  loader::load(file_path, scene);
+  loader l;
+  l.load(file_path, scene);
+
+  for (size_t id = 0; auto& mesh : scene.meshes) {
+    cout << "Mesh " << id << ":\n"
+         << "  material_id = " << mesh.material_id << '\n'
+         << endl;
+    ++id;
+  }
+
+  for (size_t id = 0; auto& material : scene.materials) {
+    cout << "Material " << id << ":\n"
+         << "  name = " << material.name << '\n'
+         << "  texture = " << material.texture_path << '\n'
+         << endl;
+    ++id;
+  }
+
+  // for (size_t id = 0; auto& texture : scene.textures) {
+  //   cout << "Texture " << id << ":\n"
+  //        << "  path = " << texture.path << '\n'
+  //        << endl;
+  //   ++id;
+  // }
+
   fit_view();
-  device_scene.load(scene);
+  scene.update();
 }
 
 }  // namespace viewer

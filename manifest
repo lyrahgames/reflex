@@ -14,6 +14,8 @@ depends: * bpkg >= 0.14.0
 
 depends: lyrahgames-xstd >= 0.1.5
 
+depends: stb_image ^ 2.26.0
+
 requires: glm
 requires: sflm-graphics
 requires: glfw3

@@ -54,7 +54,6 @@ class viewer {
   camera cam{};
 
   struct scene scene;
-  struct device_scene device_scene {};
 
   vec3 aabb_min{};
   vec3 aabb_max{};
