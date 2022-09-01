@@ -8,12 +8,21 @@ namespace viewer {
 struct basic_material {
   string name{};
   string texture_path{};
+  vec3 ambient;
+  vec3 diffuse;
+  vec3 specular;
+  float shininess;
 };
 
 struct material : basic_material {
   void bind(shader_program& shader) const noexcept {
     glActiveTexture(GL_TEXTURE0);
-    shader.set("diffuse_texture", 0);
+    shader  //
+        .set("material.texture", 0)
+        .set("material.ambient", ambient)
+        .set("material.diffuse", diffuse)
+        .set("material.specular", specular)
+        .set("material.shininess", shininess);
     glBindTexture(GL_TEXTURE_2D, device_texture);
   }
 
@@ -145,7 +154,10 @@ struct scene {
 
   void render(shader_program& shader) const noexcept {
     shader.bind();
-    for (const auto& mesh : meshes) mesh.render();
+    for (const auto& mesh : meshes){
+      materials[mesh.material_id].bind(shader);
+      mesh.render();
+    }
   }
 
   vector<mesh> meshes{};

@@ -80,6 +80,19 @@ struct loader {
 
       scene.materials.push_back({raw_material->GetName().C_Str()});
 
+      aiColor3D color(0.f, 0.f, 0.f);
+
+      raw_material->Get(AI_MATKEY_COLOR_DIFFUSE, color);
+      scene.materials.back().diffuse = vec3(color.r, color.g, color.b);
+
+      raw_material->Get(AI_MATKEY_COLOR_AMBIENT, color);
+      scene.materials.back().ambient = vec3(color.r, color.g, color.b);
+
+      raw_material->Get(AI_MATKEY_COLOR_SPECULAR, color);
+      scene.materials.back().specular = vec3(color.r, color.g, color.b);
+
+      raw_material->Get(AI_MATKEY_SHININESS, scene.materials.back().shininess);
+
       // auto diffuse_tex_count = material->GetTextureCount(aiTextureType_DIFFUSE);
       // for (size_t texid = 0; texid < diffuse_tex_count; ++texid) {
       if (raw_material->GetTextureCount(aiTextureType_DIFFUSE)) {

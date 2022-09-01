@@ -20,26 +20,48 @@ inline auto default_shader() -> shader_program {
 
       "void main(){"
       "  gl_Position = projection * view * model * vec4(p, 1.0);"
-      "  normal = vec3(model * view * vec4(n, 0.0));"
+      "  normal = vec3(view * model * vec4(n, 0.0));"
       "  texuv = uv;"
       "}";
 
   constexpr czstring fragment_shader_text =
       "#version 330 core\n"
 
-      "uniform sampler2D diffuse_texture;"
+      "struct Material {"
+      "  vec3 ambient;"
+      "  vec3 diffuse;"
+      "  vec3 specular;"
+      "  float shininess;"
+      "  sampler2D texture;"
+      "};"
+      "uniform Material material;"
 
       "in vec3 normal;"
       "in vec2 texuv;"
       "layout (location = 0) out vec4 frag_color;"
 
       "void main(){"
-      // "  vec3 tex = vec3(0.25 * texuv, 0.0);"
-      "  vec4 tex = texture(diffuse_texture, texuv);"
-      "  float ambient = 0.25;"
-      "  float diffuse = 0.5 * abs(normalize(normal).z);"
-      "  frag_color = vec4(vec3(diffuse + ambient), 1.0);"
-      "  frag_color *= tex;"
+      "  vec3 n = normalize(normal);"
+
+      "  vec3 light_color = vec3(0.8, 0.8, 0.8);"
+
+      "  vec3 view_dir = vec3(0.0, 0.0, 1.0);"
+      "  vec3 light_dir = view_dir;"
+      "  vec3 reflect_dir = reflect(-light_dir, n);"
+
+      "  vec3 color = material.ambient;"
+
+      "  float d = max(dot(light_dir, n), 0.0);"
+      "  color += d * material.diffuse;"
+
+      "  float s = pow(max(dot(reflect_dir, n), 0.0), material.shininess);"
+      "  color += s * material.specular;"
+
+      "  vec3 tex = vec3(texture(material.texture, texuv));"
+      "  color *= tex * light_color;"
+
+      "  frag_color = vec4(color, 1.0);"
+
       "}";
 
   return shader_program{vertex_shader_text, fragment_shader_text};

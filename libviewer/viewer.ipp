@@ -147,6 +147,10 @@ void viewer::load_model(czstring file_path) {
     cout << "Material " << id << ":\n"
          << "  name = " << material.name << '\n'
          << "  texture = " << material.texture_path << '\n'
+         << "  ambient = " << material.ambient << '\n'
+         << "  diffuse = " << material.diffuse << '\n'
+         << "  specular = " << material.specular << '\n'
+         << "  shininess = " << material.shininess << '\n'
          << endl;
     ++id;
   }

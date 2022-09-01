@@ -22,4 +22,8 @@ using chrono::duration;
 
 using namespace opengl;
 
+inline auto operator<<(ostream& os, vec3 v) -> ostream&{
+  return os << "(" << v.x << ", " << v.y << ", " << v.z << ")";
+}
+
 }  // namespace viewer
