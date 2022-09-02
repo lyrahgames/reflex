@@ -4,6 +4,7 @@
 #include <chrono>
 #include <cmath>
 #include <filesystem>
+#include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <numbers>
@@ -22,7 +23,7 @@ using chrono::duration;
 
 using namespace opengl;
 
-inline auto operator<<(ostream& os, vec3 v) -> ostream&{
+inline auto operator<<(ostream& os, vec3 v) -> ostream& {
   return os << "(" << v.x << ", " << v.y << ", " << v.z << ")";
 }
 

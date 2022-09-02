@@ -47,6 +47,7 @@ void init(int argc, char** argv) {
 
   if (!viewer) viewer = new ::viewer::viewer;
   viewer->load_model(argv[1]);
+  viewer->load_shader(argv[2]);
 
   // Update private state.
   is_initialized = true;

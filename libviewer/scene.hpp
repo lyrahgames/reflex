@@ -15,6 +15,15 @@ struct basic_material {
 };
 
 struct material : basic_material {
+  static constexpr czstring glsl_type_code =
+      "struct Material {"
+      "  vec3 ambient;"
+      "  vec3 diffuse;"
+      "  vec3 specular;"
+      "  float shininess;"
+      "  sampler2D texture;"
+      "};";
+
   void bind(shader_program& shader) const noexcept {
     glActiveTexture(GL_TEXTURE0);
     shader  //
@@ -124,6 +133,7 @@ struct scene {
       int width = 0;
       int height = 0;
       int channels = 0;
+      // stbi_set_flip_vertically_on_load(1);
       auto data = stbi_load(material.texture_path.c_str(), &width, &height,
                             &channels, 0);
       if (!data)

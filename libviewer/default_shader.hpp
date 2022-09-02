@@ -12,21 +12,26 @@ inline auto default_shader() -> shader_program {
       "  mat4 view;"
       "  mat4 viewport;"
       "};"
-      "uniform Camera camera;"
 
+      "uniform Camera camera;"
       "uniform mat4 model;"
 
       "layout (location = 0) in vec3 p;"
       "layout (location = 1) in vec3 n;"
       "layout (location = 2) in vec2 uv;"
 
-      "out vec3 normal;"
-      "out vec2 texuv;"
+      // "out vec3 normal;"
+      // "out vec2 texuv;"
+
+      "out vertex_data {"
+      "  vec3 normal;"
+      "  vec2 texuv;"
+      "} v;"
 
       "void main(){"
       "  gl_Position = camera.projection * camera.view * model * vec4(p, 1.0);"
-      "  normal = vec3(camera.view * model * vec4(n, 0.0));"
-      "  texuv = uv;"
+      "  v.normal = vec3(camera.view * model * vec4(n, 0.0));"
+      "  v.texuv = uv;"
       "}";
 
   constexpr czstring fragment_shader_text =
@@ -41,12 +46,18 @@ inline auto default_shader() -> shader_program {
       "};"
       "uniform Material material;"
 
-      "in vec3 normal;"
-      "in vec2 texuv;"
+      // "in vec3 normal;"
+      // "in vec2 texuv;"
+
+      "in vertex_data {"
+      "  vec3 normal;"
+      "  vec2 texuv;"
+      "} v;"
+
       "layout (location = 0) out vec4 frag_color;"
 
       "void main(){"
-      "  vec3 n = normalize(normal);"
+      "  vec3 n = normalize(v.normal);"
 
       "  vec3 light_color = vec3(0.3, 0.3, 0.3);"
 
@@ -62,7 +73,7 @@ inline auto default_shader() -> shader_program {
       "  float s = pow(max(dot(reflect_dir, n), 0.0), material.shininess);"
       "  color += s * material.specular;"
 
-      "  vec3 tex = vec3(texture(material.texture, texuv));"
+      "  vec3 tex = vec3(texture(material.texture, v.texuv));"
       "  color *= tex * light_color;"
 
       "  frag_color = vec4(color, 1.0);"

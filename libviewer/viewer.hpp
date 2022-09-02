@@ -17,6 +17,8 @@ class viewer {
   static constexpr size_t context_version_major = 3;
   static constexpr size_t context_version_minor = 3;
 
+  static constexpr czstring glsl_version_macro_code = "#version 330 core\n";
+
   viewer(int w = initial_screen_width, int h = initial_screen_height);
   ~viewer();
 
@@ -34,6 +36,8 @@ class viewer {
 
   void fit_view();
   void load_model(czstring file_path);
+
+  void load_shader(czstring path);
 
  private:
   int screen_width, screen_height;

@@ -164,4 +164,41 @@ void viewer::load_model(czstring file_path) {
   scene.update();
 }
 
+void viewer::load_shader(czstring path) {
+  const auto file_content = [](czstring path) {
+    ifstream file{path, ios::binary | ios::ate};
+    if (!file) throw runtime_error("Failed to open file.");
+    auto size = file.tellg();
+    string content(size, '\0');
+    file.seekg(0);
+    file.read(content.data(), size);
+    return content;
+  };
+
+  auto vs_path = filesystem::path(path);
+  vs_path += ".vert";
+  if (!filesystem::is_regular_file(vs_path))
+    throw runtime_error("Vertex shader file does not exist.");
+  const auto vs_code = file_content(vs_path.c_str());
+
+  auto fs_path = filesystem::path(path);
+  fs_path += ".frag";
+  if (!filesystem::is_regular_file(fs_path))
+    throw runtime_error("Fragment shader file does not exist.");
+  const auto fs_code = file_content(fs_path.c_str());
+
+  auto gs_path = filesystem::path(path);
+  gs_path += ".geom";
+  if (filesystem::is_regular_file(gs_path)) {
+    const auto gs_code = file_content(gs_path.c_str());
+    shader = shader_program{vertex_shader{vs_code.c_str()},
+                            geometry_shader{gs_code.c_str()},
+                            fragment_shader{fs_code.c_str()}};
+    return;
+  }
+
+  shader = shader_program{vertex_shader{vs_code.c_str()},
+                          fragment_shader{fs_code.c_str()}};
+}
+
 }  // namespace viewer

@@ -31,6 +31,7 @@ int main(int argc, char* argv[]) {
 
   viewer viewer;
   viewer.load_model(argv[1]);
+  viewer.load_shader(argv[2]);
 
   auto old_mouse_pos = sf::Mouse::getPosition(window);
   bool running = true;
