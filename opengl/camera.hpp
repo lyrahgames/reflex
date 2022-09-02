@@ -35,6 +35,10 @@ class camera {
   auto projection_matrix() const noexcept {
     return glm::perspective(vfov(), aspect_ratio(), near(), far());
   }
+  auto viewport_matrix() const noexcept {
+    return scale(  //
+        mat4{1.0f}, {screen_width() / 2.0f, screen_height() / 2.0f, 1.0f});
+  }
 
   constexpr auto set_perspective(int w,
                                  int h,

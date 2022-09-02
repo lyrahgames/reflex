@@ -75,8 +75,9 @@ void viewer::update_view() {
 
   shader.bind();
   shader  //
-      .set("projection", cam.projection_matrix())
-      .set("view", cam.view_matrix());
+      .set("camera.projection", cam.projection_matrix())
+      .set("camera.view", cam.view_matrix())
+      .set("camera.viewport", cam.viewport_matrix());
 }
 
 void viewer::turn(const vec2& angle) {

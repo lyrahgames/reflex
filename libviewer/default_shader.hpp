@@ -7,8 +7,13 @@ inline auto default_shader() -> shader_program {
   constexpr czstring vertex_shader_text =
       "#version 330 core\n"
 
-      "uniform mat4 projection;"
-      "uniform mat4 view;"
+      "struct Camera {"
+      "  mat4 projection;"
+      "  mat4 view;"
+      "  mat4 viewport;"
+      "};"
+      "uniform Camera camera;"
+
       "uniform mat4 model;"
 
       "layout (location = 0) in vec3 p;"
@@ -19,8 +24,8 @@ inline auto default_shader() -> shader_program {
       "out vec2 texuv;"
 
       "void main(){"
-      "  gl_Position = projection * view * model * vec4(p, 1.0);"
-      "  normal = vec3(view * model * vec4(n, 0.0));"
+      "  gl_Position = camera.projection * camera.view * model * vec4(p, 1.0);"
+      "  normal = vec3(camera.view * model * vec4(n, 0.0));"
       "  texuv = uv;"
       "}";
 
@@ -43,7 +48,7 @@ inline auto default_shader() -> shader_program {
       "void main(){"
       "  vec3 n = normalize(normal);"
 
-      "  vec3 light_color = vec3(0.8, 0.8, 0.8);"
+      "  vec3 light_color = vec3(0.3, 0.3, 0.3);"
 
       "  vec3 view_dir = vec3(0.0, 0.0, 1.0);"
       "  vec3 light_dir = view_dir;"
