@@ -9,42 +9,6 @@
 
 namespace viewer {
 
-struct image {
-  image() noexcept = default;
-  image(czstring path) { load(path); }
-  ~image() noexcept {
-    if (data) stbi_image_free(data);
-  }
-  // Do not allow copying
-  image(const image&) = delete;
-  image& operator=(const image&) = delete;
-
-  //
-  image(image&& t) noexcept
-      : width{t.width}, height{t.height}, channels{t.channels}, data{t.data} {
-    t.data = nullptr;
-  }
-  image& operator=(image&& t) noexcept {
-    width = t.width;
-    height = t.height;
-    channels = t.channels;
-    swap(data, t.data);
-    return *this;
-  }
-
-  void load(czstring path) {
-    data = stbi_load(path, &width, &height, &channels, 0);
-    if (!data)
-      throw runtime_error(string("Failed to load file '") + path +
-                          "' as image.");
-  }
-
-  int width = 0;
-  int height = 0;
-  int channels = 0;
-  unsigned char* data = nullptr;
-};
-
 struct loader {
   void transform(const aiScene* raw_scene,
                  const aiMesh* raw_mesh,
