@@ -2,6 +2,7 @@
 #include <libviewer/scene.hpp>
 #include <libviewer/utility.hpp>
 //
+#include <libviewer/contours_shader.hpp>
 #include <libviewer/default_shader.hpp>
 #include <libviewer/wireframe_shader.hpp>
 
