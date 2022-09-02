@@ -9,6 +9,13 @@
 !*.cpp
 !*.in
 
+!*.vert
+!*.geom
+!*.frag
+!*.vs
+!*.gs
+!*.fs
+
 !.build2/**
 !buildfile
 !bootstrap.build
