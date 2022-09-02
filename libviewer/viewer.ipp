@@ -43,13 +43,10 @@ void viewer::update() {
   }
 
   const auto new_time = clock::now();
-  const auto t = duration<float>(new_time - time).count();
+  const auto dt = duration<float>(new_time - time).count();
+  time = new_time;
 
-  // Compute and set MVP matrix in shader.
-  auto model_matrix = glm::mat4{1.0f};
-  const auto axis = glm::normalize(glm::vec3(1, 1, 1));
-  model_matrix = rotate(model_matrix, 0.1f * t, axis);
-  shader.set("model", model_matrix);
+  scene.animate(dt);
 }
 
 void viewer::render() {

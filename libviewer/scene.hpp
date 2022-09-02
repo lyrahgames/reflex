@@ -154,15 +154,22 @@ struct scene {
 
   void render(shader_program& shader) const noexcept {
     shader.bind();
-    for (const auto& mesh : meshes){
+    shader.set("model", model_matrix);
+    for (const auto& mesh : meshes) {
       materials[mesh.material_id].bind(shader);
       mesh.render();
     }
   }
 
+  void animate(float dt) noexcept {
+    model_matrix = rotate(model_matrix, 0.1f * dt, normalize(vec3(1, 1, 1)));
+  }
+
   vector<mesh> meshes{};
   vector<material> materials{};
   unordered_map<string, texture2> textures{};
+  mat4 model_matrix{1.0f};
+  mat3 normal_matrix{1.0f};
 };
 
 }  // namespace viewer
