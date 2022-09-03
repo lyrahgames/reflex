@@ -15,6 +15,7 @@
 !*.vs
 !*.gs
 !*.fs
+!*.glsl
 
 !.build2/**
 !buildfile

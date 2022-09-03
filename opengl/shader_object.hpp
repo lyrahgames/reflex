@@ -22,9 +22,9 @@ constexpr auto shader_object_type_name(GLenum shader_object_type) -> czstring {
   }
 }
 
-constexpr struct warnings_as_errors_t {
+inline constexpr struct warnings_as_errors_t {
 } warnings_as_errors{};
-constexpr struct ignore_warnings_t {
+inline constexpr struct ignore_warnings_t {
 } ignore_warnings{};
 
 struct shader_compile_error : runtime_error {
@@ -165,5 +165,39 @@ class shader_object {
 using vertex_shader = shader_object<GL_VERTEX_SHADER>;
 using geometry_shader = shader_object<GL_GEOMETRY_SHADER>;
 using fragment_shader = shader_object<GL_FRAGMENT_SHADER>;
+
+inline auto vertex_shader_from_file(czstring path, auto&& warning_handle)
+    -> vertex_shader {
+  return vertex_shader{string_from_file(path).c_str(),
+                       std::forward<decltype(warning_handle)>(warning_handle)};
+}
+
+inline auto vertex_shader_from_file(czstring path) {
+  return vertex_shader_from_file(path, warnings_as_errors);
+}
+
+inline auto geometry_shader_from_file(
+    czstring path,
+    auto&& warning_handle = warnings_as_errors) -> geometry_shader {
+  return geometry_shader{
+      string_from_file(path).c_str(),
+      std::forward<decltype(warning_handle)>(warning_handle)};
+}
+
+inline auto geometry_shader_from_file(czstring path) {
+  return geometry_shader_from_file(path, warnings_as_errors);
+}
+
+inline auto fragment_shader_from_file(
+    czstring path,
+    auto&& warning_handle = warnings_as_errors) -> fragment_shader {
+  return fragment_shader{
+      string_from_file(path).c_str(),
+      std::forward<decltype(warning_handle)>(warning_handle)};
+}
+
+inline auto fragment_shader_from_file(czstring path) {
+  return fragment_shader_from_file(path, warnings_as_errors);
+}
 
 }  // namespace opengl

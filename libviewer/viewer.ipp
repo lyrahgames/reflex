@@ -165,40 +165,50 @@ void viewer::load_model(czstring file_path) {
 }
 
 void viewer::load_shader(czstring path) {
-  const auto file_content = [](czstring path) {
-    ifstream file{path, ios::binary | ios::ate};
-    if (!file) throw runtime_error("Failed to open file.");
-    auto size = file.tellg();
-    string content(size, '\0');
-    file.seekg(0);
-    file.read(content.data(), size);
-    return content;
-  };
+  // if (filesystem::is_directory(filesystem::path(path))) {
+  //   constexpr czstring vertex_shader_name = "vs.glsl";
+  //   constexpr czstring geometry_shader_name = "gs.glsl";
+  //   constexpr czstring fragment_shader_name = "fs.glsl";
 
-  auto vs_path = filesystem::path(path);
-  vs_path += ".vert";
-  if (!filesystem::is_regular_file(vs_path))
-    throw runtime_error("Vertex shader file does not exist.");
-  const auto vs_code = file_content(vs_path.c_str());
+  //   return;
+  // }
 
-  auto fs_path = filesystem::path(path);
-  fs_path += ".frag";
-  if (!filesystem::is_regular_file(fs_path))
-    throw runtime_error("Fragment shader file does not exist.");
-  const auto fs_code = file_content(fs_path.c_str());
+  // const auto file_content = [](czstring path) {
+  //   ifstream file{path, ios::binary | ios::ate};
+  //   if (!file) throw runtime_error("Failed to open file.");
+  //   auto size = file.tellg();
+  //   string content(size, '\0');
+  //   file.seekg(0);
+  //   file.read(content.data(), size);
+  //   return content;
+  // };
 
-  auto gs_path = filesystem::path(path);
-  gs_path += ".geom";
-  if (filesystem::is_regular_file(gs_path)) {
-    const auto gs_code = file_content(gs_path.c_str());
-    shader = shader_program{vertex_shader{vs_code.c_str()},
-                            geometry_shader{gs_code.c_str()},
-                            fragment_shader{fs_code.c_str()}};
-    return;
-  }
+  // auto vs_path = filesystem::path(path);
+  // vs_path += ".vert";
+  // if (!filesystem::is_regular_file(vs_path))
+  //   throw runtime_error("Vertex shader file does not exist.");
+  // // const auto vs_code = file_content(vs_path.c_str());
+  // const auto vs = vertex_shader_from_file(vs_path.c_str());
 
-  shader = shader_program{vertex_shader{vs_code.c_str()},
-                          fragment_shader{fs_code.c_str()}};
+  // auto fs_path = filesystem::path(path);
+  // fs_path += ".frag";
+  // if (!filesystem::is_regular_file(fs_path))
+  //   throw runtime_error("Fragment shader file does not exist.");
+  // // const auto fs_code = file_content(fs_path.c_str());
+  // const auto fs = fragment_shader_from_file(fs_path.c_str());
+
+  // auto gs_path = filesystem::path(path);
+  // gs_path += ".geom";
+  // if (filesystem::is_regular_file(gs_path)) {
+  //   // const auto gs_code = file_content(gs_path.c_str());
+  //   const auto gs = geometry_shader_from_file(gs_path.c_str());
+  //   shader = shader_program{vs, gs, fs};
+  //   return;
+  // }
+
+  // shader = shader_program{vs, fs};
+
+  shader = shader_from_file(path);
 }
 
 }  // namespace viewer

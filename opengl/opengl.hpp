@@ -2,6 +2,7 @@
 //
 #include <opengl/buffer.hpp>
 #include <opengl/camera.hpp>
+#include <opengl/shader_loader.hpp>
 #include <opengl/shader_object.hpp>
 #include <opengl/shader_program.hpp>
 #include <opengl/texture.hpp>
