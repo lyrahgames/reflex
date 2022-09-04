@@ -8,7 +8,8 @@ inline auto shader_from_file(czstring file_path) -> shader_program {
   const auto path = filesystem::path(file_path);
 
   if (!is_directory(path))
-    throw runtime_error("Unsupported GLSL shader file structure.");
+    throw runtime_error("Unsupported GLSL shader file structure in '"s +
+                        file_path + "'.");
 
   const auto vs_path = path / "vs.glsl";
   if (!is_regular_file(vs_path))

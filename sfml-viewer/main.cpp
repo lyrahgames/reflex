@@ -33,13 +33,14 @@ int main(int argc, char* argv[]) {
   viewer.load_model(argv[1]);
   viewer.load_shader(argv[2]);
 
+  viewer.start();
+
   auto old_mouse_pos = sf::Mouse::getPosition(window);
-  bool running = true;
-  while (running) {
+  while (viewer.running()) {
     sf::Event event;
     while (window.pollEvent(event)) {
       if (event.type == sf::Event::Closed)
-        running = false;
+        viewer.stop();
       else if (event.type == sf::Event::Resized)
         viewer.resize(event.size.width, event.size.height);
       else if (event.type == sf::Event::MouseWheelScrolled)
@@ -47,7 +48,7 @@ int main(int argc, char* argv[]) {
       else if (event.type == sf::Event::KeyPressed) {
         switch (event.key.code) {
           case sf::Keyboard::Escape:
-            running = false;
+            viewer.stop();
             break;
         }
       }

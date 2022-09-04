@@ -48,6 +48,7 @@ void init(int argc, char** argv) {
   if (!viewer) viewer = new ::viewer::viewer;
   viewer->load_model(argv[1]);
   viewer->load_shader(argv[2]);
+  viewer->start();
 
   // Update private state.
   is_initialized = true;
@@ -73,7 +74,7 @@ void run() {
   if (!is_initialized) init();
 
   // Start application loop.
-  while (!glfwWindowShouldClose(window)) {
+  while (!glfwWindowShouldClose(window) && viewer->running()) {
     // Handle user and OS events.
     glfwPollEvents();
     process_events();
@@ -119,8 +120,10 @@ void init_window() {
   // by adding key event handler.
   glfwSetKeyCallback(window, [](GLFWwindow* window, int key, int scancode,
                                 int action, int mods) {
-    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
+    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
       glfwSetWindowShouldClose(window, GLFW_TRUE);
+      viewer->stop();
+    }
   });
 
   // Add resize handler.

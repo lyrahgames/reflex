@@ -9,8 +9,15 @@
 #include <iostream>
 #include <numbers>
 #include <stdexcept>
-#include <string>
 #include <vector>
+//
+#include <string>
+#include <string_view>
+//
+#include <atomic>
+#include <future>
+#include <mutex>
+#include <thread>
 //
 #include <opengl/opengl.hpp>
 

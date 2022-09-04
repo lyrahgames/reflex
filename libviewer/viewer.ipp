@@ -42,6 +42,12 @@ void viewer::update() {
     view_should_update = false;
   }
 
+  if (line_read.available()) {
+    const auto line = line_read.get();
+    cout << line << endl;
+    line_read = async_line_read();
+  }
+
   const auto new_time = clock::now();
   const auto dt = duration<float>(new_time - time).count();
   time = new_time;
@@ -134,24 +140,24 @@ void viewer::load_model(czstring file_path) {
   loader l;
   l.load(file_path, scene);
 
-  for (size_t id = 0; auto& mesh : scene.meshes) {
-    cout << "Mesh " << id << ":\n"
-         << "  material_id = " << mesh.material_id << '\n'
-         << endl;
-    ++id;
-  }
+  // for (size_t id = 0; auto& mesh : scene.meshes) {
+  //   cout << "Mesh " << id << ":\n"
+  //        << "  material_id = " << mesh.material_id << '\n'
+  //        << endl;
+  //   ++id;
+  // }
 
-  for (size_t id = 0; auto& material : scene.materials) {
-    cout << "Material " << id << ":\n"
-         << "  name = " << material.name << '\n'
-         << "  texture = " << material.texture_path << '\n'
-         << "  ambient = " << material.ambient << '\n'
-         << "  diffuse = " << material.diffuse << '\n'
-         << "  specular = " << material.specular << '\n'
-         << "  shininess = " << material.shininess << '\n'
-         << endl;
-    ++id;
-  }
+  // for (size_t id = 0; auto& material : scene.materials) {
+  //   cout << "Material " << id << ":\n"
+  //        << "  name = " << material.name << '\n'
+  //        << "  texture = " << material.texture_path << '\n'
+  //        << "  ambient = " << material.ambient << '\n'
+  //        << "  diffuse = " << material.diffuse << '\n'
+  //        << "  specular = " << material.specular << '\n'
+  //        << "  shininess = " << material.shininess << '\n'
+  //        << endl;
+  //   ++id;
+  // }
 
   // for (size_t id = 0; auto& texture : scene.textures) {
   //   cout << "Texture " << id << ":\n"
@@ -209,6 +215,7 @@ void viewer::load_shader(czstring path) {
   // shader = shader_program{vs, fs};
 
   shader = shader_from_file(path);
+  view_should_update = true;
 }
 
 }  // namespace viewer

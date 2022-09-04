@@ -1,4 +1,5 @@
 #pragma once
+#include <libviewer/async_cio.hpp>
 #include <libviewer/scene.hpp>
 #include <libviewer/utility.hpp>
 //
@@ -39,7 +40,12 @@ class viewer {
 
   void load_shader(czstring path);
 
+  bool running() const noexcept { return running_; }
+  void start() noexcept { running_ = true; }
+  void stop() noexcept { running_ = false; }
+
  private:
+  bool running_ = false;
   int screen_width, screen_height;
   time_type time = clock::now();
 
@@ -65,6 +71,8 @@ class viewer {
   vec3 aabb_min{};
   vec3 aabb_max{};
   float bounding_radius;
+
+  async_cio_state line_read = async_line_read();
 };
 
 }  // namespace viewer

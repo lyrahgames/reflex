@@ -1,5 +1,6 @@
 include ../opengl/
 libs = ../opengl/lib{opengl}
+import libs += pthread%lib{pthread}
 import libs += assimp%lib{assimp}
 import libs += stb_image%lib{stb_image}
 
