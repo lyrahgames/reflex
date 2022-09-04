@@ -20,6 +20,12 @@ viewer::viewer(int w, int h) : screen_width(w), screen_height(h) {
   glClearColor(0.2, 0.2, 0.2, 1.0);
   glPointSize(3.0f);
   glLineWidth(2.5f);
+
+  calls["exit"] = s.create([this]() { stop(); });
+  calls["load_shader"] =
+      s.create([this](string path) { load_shader(path.c_str()); });
+  calls["load_model"] =
+      s.create([this](string path) { load_model(path.c_str()); });
 }
 
 viewer::~viewer() {}
@@ -36,6 +42,20 @@ void viewer::resize(int width, int height) {
   resize();
 }
 
+void viewer::interpret_command(const string& line) {
+  stringstream input{line};
+  string command;
+  input >> command;
+
+  auto it = calls.find(command);
+  if (it == calls.end())
+    cout << "Unknown function." << endl;
+  else {
+    auto [name, call] = *it;
+    call(input, cout);
+  }
+}
+
 void viewer::update() {
   if (view_should_update) {
     update_view();
@@ -44,8 +64,8 @@ void viewer::update() {
 
   if (line_read.available()) {
     const auto line = line_read.get();
-    cout << line << endl;
-    line_read = async_line_read();
+    interpret_command(line);
+    if (running()) line_read = async_line_read();
   }
 
   const auto new_time = clock::now();
@@ -168,6 +188,7 @@ void viewer::load_model(czstring file_path) {
 
   fit_view();
   scene.update();
+  view_should_update = true;
 }
 
 void viewer::load_shader(czstring path) {

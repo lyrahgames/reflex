@@ -1,5 +1,6 @@
 #pragma once
 #include <libviewer/async_cio.hpp>
+#include <libviewer/dynamic_function.hpp>
 #include <libviewer/scene.hpp>
 #include <libviewer/utility.hpp>
 //
@@ -44,6 +45,8 @@ class viewer {
   void start() noexcept { running_ = true; }
   void stop() noexcept { running_ = false; }
 
+  void interpret_command(const string& line);
+
  private:
   bool running_ = false;
   int screen_width, screen_height;
@@ -73,6 +76,14 @@ class viewer {
   float bounding_radius;
 
   async_cio_state line_read = async_line_read();
+
+  serializer<istream&,
+             ostream&,
+             decltype([](istream& in, auto& x) { in >> x; }),
+             decltype([](const auto& x, ostream& out) { out << x << endl; })>
+      s{};
+  using dynamic_function = decltype(s)::dynamic_function;
+  unordered_map<string, dynamic_function> calls{};
 };
 
 }  // namespace viewer
