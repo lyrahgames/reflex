@@ -9,6 +9,8 @@ using namespace gl;
 #include <libviewer/viewer.ipp>
 //
 #include <lyrahgames/options/options.hpp>
+//
+#include <lyrahgames/log/log.hpp>
 
 using namespace std;
 // Provide the list of program options and
@@ -23,11 +25,13 @@ option_list<  //
 using positioning = position_list<"model">;
 
 int main(int argc, char* argv[]) {
+  lyrahgames::log::log log;
+
   try {
     parse<positioning>({argc, argv}, options);
   } catch (parser_error& e) {
-    // log::error(e.what());
-    cerr << e.what() << endl;
+    log.error(e.what());
+    // cerr << e.what() << endl;
     exit(-1);
   }
 

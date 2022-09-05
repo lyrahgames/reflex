@@ -14,7 +14,7 @@ depends: * bpkg >= 0.15.0
 
 depends: lyrahgames-xstd >= 0.1.5
 depends: lyrahgames-options >= 0.1.0
-# depends: lyrahgames-log >= 0.1.0
+depends: lyrahgames-log >= 0.1.1
 
 depends: stb_image ^ 2.26.0
 

@@ -1,5 +1,8 @@
 libs = ../libviewer/lib{viewer}
+
 import libs += lyrahgames-options%lib{lyrahgames-options}
+import libs += lyrahgames-log%lib{lyrahgames-log}
+
 import libs += sfml-graphics%lib{sfml-graphics}
 import libs += glbinding%lib{glbinding}
 
