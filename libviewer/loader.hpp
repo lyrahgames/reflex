@@ -86,9 +86,9 @@ struct loader {
     cout << path << endl << directory << endl;
 
     Assimp::Importer importer{};
-    const auto post_processing = aiProcess_Triangulate | aiProcess_FlipUVs |
-                                 // aiProcess_GenNormals |
-                                 aiProcess_GenSmoothNormals;
+    const auto post_processing =
+        aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenSmoothNormals;
+    // | aiProcess_FlipUVs | aiProcess_GenNormals | aiProcess_GenSmoothNormals;
     const auto raw = importer.ReadFile(file_path, post_processing);
 
     if (!raw || raw->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !raw->mRootNode)
@@ -127,18 +127,7 @@ struct loader {
     // }
   }
 
-  // auto image_data(czstring path) -> const image& {
-  //   const auto it = cached_images.find(path);
-  //   if (it == end(cached_images)) {
-  //     const auto info = cached_images.emplace(path, image{path});
-  //     return info.first->second;
-  //   }
-  //   return it->second;
-  // }
-
   filesystem::path directory;
-
-  // unordered_map<string, image> cached_images{};
 };
 
 }  // namespace viewer

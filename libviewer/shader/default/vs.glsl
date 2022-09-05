@@ -8,6 +8,7 @@ struct Camera {
 
 uniform Camera camera;
 uniform mat4 model;
+uniform mat3 normal_matrix;
 
 layout (location = 0) in vec3 p;
 layout (location = 1) in vec3 n;
@@ -20,6 +21,6 @@ out vertex_data {
 
 void main(){
   gl_Position = camera.projection * camera.view * model * vec4(p, 1.0);
-  v.normal = vec3(camera.view * model * vec4(n, 0.0));
+  v.normal = vec3(camera.view * vec4(normal_matrix * n, 0.0));
   v.texuv = uv;
 }

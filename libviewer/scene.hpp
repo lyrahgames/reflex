@@ -165,6 +165,10 @@ struct scene {
   void render(shader_program& shader) const noexcept {
     shader.bind();
     shader.set("model", model_matrix);
+
+    const auto normal_matrix = inverse(transpose(mat3(model_matrix)));
+    shader.set("normal_matrix", normal_matrix);
+
     for (const auto& mesh : meshes) {
       materials[mesh.material_id].bind(shader);
       mesh.render();

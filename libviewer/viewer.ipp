@@ -26,6 +26,10 @@ viewer::viewer(int w, int h) : screen_width(w), screen_height(h) {
       s.create([this](string path) { load_shader(path.c_str()); });
   calls["load_model"] =
       s.create([this](string path) { load_model(path.c_str()); });
+
+  calls["help"] = s.create([this] {
+    for (const auto& [name, _] : calls) cout << name << endl;
+  });
 }
 
 viewer::~viewer() {}
