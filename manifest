@@ -9,10 +9,12 @@ url: https://example.org/viewer
 email: lyrahgames@mailbox.org
 #build-error-email: lyrahgames@mailbox.org
 
-depends: * build2 >= 0.14.0
-depends: * bpkg >= 0.14.0
+depends: * build2 >= 0.15.0
+depends: * bpkg >= 0.15.0
 
 depends: lyrahgames-xstd >= 0.1.5
+depends: lyrahgames-options >= 0.1.0
+# depends: lyrahgames-log >= 0.1.0
 
 depends: stb_image ^ 2.26.0
 

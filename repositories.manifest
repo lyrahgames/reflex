@@ -9,3 +9,11 @@ location: https://pkg.cppget.org/1/stable
 :
 role: prerequisite
 location: https://github.com/lyrahgames/xstd.git
+
+:
+role: prerequisite
+location: https://github.com/lyrahgames/options.git
+
+:
+role: prerequisite
+location: https://github.com/lyrahgames/log.git

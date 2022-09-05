@@ -7,10 +7,44 @@
 using namespace gl;
 //
 #include <libviewer/viewer.ipp>
+//
+#include <lyrahgames/options/options.hpp>
 
 using namespace std;
+// Provide the list of program options and
+// the variable which is able to store their values.
+using namespace lyrahgames::options;
+option_list<  //
+    flag<{"help", 'h'}, "Print the help message.">,
+    flag<"version", "Print the library version.">,
+    attachment<{"shader", 's'}, "Path to shader">,
+    attachment<{"model", 'm'}, "Path to model">>
+    options{};
+using positioning = position_list<"model">;
 
 int main(int argc, char* argv[]) {
+  try {
+    parse<positioning>({argc, argv}, options);
+  } catch (parser_error& e) {
+    // log::error(e.what());
+    cerr << e.what() << endl;
+    exit(-1);
+  }
+
+  // Provide a custom help message.
+  if (option<"help">(options)) {
+    for_each(options, [](auto& option) {
+      cout << left << setw(25) << option.help() << option.description() << endl;
+    });
+    exit(0);
+  }
+
+  // Provide the library version.
+  // if (option<"version">(options)) {
+  //   cout << "Version " LYRAHGAMES_OPTIONS_VERSION_STR << endl;
+  //   exit(0);
+  // }
+
   using viewer::viewer;
   sf::ContextSettings settings;
   settings.majorVersion = viewer::context_version_major;
@@ -30,8 +64,9 @@ int main(int argc, char* argv[]) {
   glbinding::initialize(sf::Context::getFunction);
 
   viewer viewer;
-  viewer.load_model(argv[1]);
-  viewer.load_shader(argv[2]);
+
+  if (option<"shader">(options)) viewer.load_shader(value<"shader">(options));
+  if (option<"model">(options)) viewer.load_model(value<"model">(options));
 
   viewer.start();
 
