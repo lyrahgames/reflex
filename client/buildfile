@@ -1,0 +1,2 @@
+libs = ../libviewer/lib{viewer}
+exe{client}: cxx{main} $libs

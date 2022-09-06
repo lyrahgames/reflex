@@ -52,11 +52,13 @@ void viewer::interpret_command(const string& line) {
   input >> command;
 
   auto it = calls.find(command);
-  if (it == calls.end())
-    cout << "Unknown function." << endl;
+  if (it == calls.end()) cout << "Unknown function." << endl;
+  // return "Unknown function";
   else {
+    // stringstream s;
     auto [name, call] = *it;
     call(input, cout);
+    // return s.str();
   }
 }
 
@@ -66,10 +68,12 @@ void viewer::update() {
     view_should_update = false;
   }
 
-  if (line_read.available()) {
-    const auto line = line_read.get();
+  if (auto connection = server.accept()) {
+    string line{};
+    while ((line = connection.read()).empty()) {
+    }
     interpret_command(line);
-    if (running()) line_read = async_line_read();
+    // connection.write(result);
   }
 
   const auto new_time = clock::now();

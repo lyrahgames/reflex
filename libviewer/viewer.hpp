@@ -2,6 +2,7 @@
 #include <libviewer/async_cio.hpp>
 #include <libviewer/dynamic_function.hpp>
 #include <libviewer/scene.hpp>
+#include <libviewer/socket.hpp>
 #include <libviewer/utility.hpp>
 //
 #include <libviewer/contours_shader.hpp>
@@ -75,7 +76,7 @@ class viewer {
   vec3 aabb_max{};
   float bounding_radius;
 
-  async_cio_state line_read = async_line_read();
+  server_socket server{"/tmp/libviewer-server.socket"};
 
   serializer<istream&,
              ostream&,

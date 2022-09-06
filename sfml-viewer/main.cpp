@@ -19,6 +19,7 @@ using namespace lyrahgames::options;
 option_list<  //
     flag<{"help", 'h'}, "Print the help message.">,
     flag<"version", "Print the library version.">,
+    flag<{"daemon", 'd'}, "Run application as daemon.">,
     attachment<{"shader", 's'}, "Path to shader">,
     attachment<{"model", 'm'}, "Path to model">>
     options{};
@@ -48,6 +49,8 @@ int main(int argc, char* argv[]) {
   //   cout << "Version " LYRAHGAMES_OPTIONS_VERSION_STR << endl;
   //   exit(0);
   // }
+
+  if (option<"daemon">(options)) daemon(true, true);
 
   using viewer::viewer;
   sf::ContextSettings settings;
