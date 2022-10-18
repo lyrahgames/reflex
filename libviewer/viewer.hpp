@@ -7,6 +7,7 @@
 //
 #include <libviewer/contours_shader.hpp>
 #include <libviewer/default_shader.hpp>
+#include <libviewer/point_shader.hpp>
 #include <libviewer/wireframe_shader.hpp>
 
 namespace viewer {
@@ -49,6 +50,7 @@ class viewer {
   void interpret_command(const string& line);
 
   void select_face(float x, float y);
+  void select_vertex(float x, float y);
 
  private:
   bool running_ = false;
@@ -58,6 +60,7 @@ class viewer {
   shader_program shader = default_shader();
 
   shader_program selection_shader = wireframe_shader();
+  shader_program point_selection_shader = point_shader();
 
   // World Origin
   vec3 origin;
@@ -76,6 +79,7 @@ class viewer {
 
   struct scene scene;
   mesh selection{};
+  points point_selection{};
 
   vec3 aabb_min{};
   vec3 aabb_max{};

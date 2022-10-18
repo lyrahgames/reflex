@@ -127,6 +127,32 @@ struct mesh : basic_mesh {
   element_buffer device_faces{};
 };
 
+struct points {
+  points() noexcept { setup(); };
+
+  void setup() {
+    device_handle.bind();
+    device_vertices.bind();
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vec3), nullptr);
+  }
+
+  void update() {
+    device_vertices.bind();
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(vec3),
+                 vertices.data(), GL_STATIC_DRAW);
+  }
+
+  void render() {
+    device_handle.bind();
+    glDrawArrays(GL_POINTS, 0, vertices.size());
+  }
+
+  vector<vec3> vertices{};
+  vertex_array device_handle{};
+  vertex_buffer device_vertices{};
+};
+
 // struct marked_triangle {
 //   marked_triangle(const mesh& m, size_t face_id) noexcept : mesh_ref{m} {
 //     device_handle.bind();

@@ -93,7 +93,7 @@ int main(int argc, char* argv[]) {
             viewer.stop();
             break;
           case sf::Keyboard::Space:
-            viewer.select_face(old_mouse_pos.x, old_mouse_pos.y);
+            viewer.select_vertex(old_mouse_pos.x, old_mouse_pos.y);
             break;
         }
       }

@@ -18,7 +18,7 @@ viewer::viewer(int w, int h) : screen_width(w), screen_height(h) {
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   glClearColor(0.2, 0.2, 0.2, 1.0);
-  glPointSize(3.0f);
+  glPointSize(5.0f);
   glLineWidth(2.5f);
 
   calls["exit"] = s.create([this]() { stop(); });
@@ -91,6 +91,9 @@ void viewer::render() {
 
   glDepthFunc(GL_ALWAYS);
   scene.render(selection_shader, selection);
+
+  point_selection_shader.bind();
+  point_selection.render();
 }
 
 void viewer::update_view() {
@@ -146,6 +149,12 @@ void viewer::update_view() {
 
   selection_shader.bind();
   selection_shader  //
+      .set("camera.projection", cam.projection_matrix())
+      .set("camera.view", cam.view_matrix())
+      .set("camera.viewport", cam.viewport_matrix());
+
+  point_selection_shader.bind();
+  point_selection_shader  //
       .set("camera.projection", cam.projection_matrix())
       .set("camera.view", cam.view_matrix())
       .set("camera.viewport", cam.viewport_matrix());
@@ -311,6 +320,36 @@ void viewer::select_face(float x, float y) {
   //      << "v = " << p.v << '\n'
   //      << "t = " << p.t << '\n'
   //      << endl;
+}
+
+void viewer::select_vertex(float x, float y) {
+  const auto direction = normalize(
+      cam.direction() +
+      cam.pixel_size() * ((x - 0.5f * cam.screen_width()) * cam.right() +
+                          (0.5f * cam.screen_height() - y) * cam.up()));
+  ray r{cam.position(), direction};
+  const auto p = scene.intersect(r);
+
+  cout << "x = " << x << '\n'
+       << "y = " << y << '\n'
+       << "mesh = " << p.mesh_id << '\n'
+       << "face = " << p.face_id << '\n'
+       << "u = " << p.u << '\n'
+       << "v = " << p.v << '\n'
+       << "t = " << p.t << '\n'
+       << endl;
+
+  if (!p) return;
+
+  const auto& m = scene.meshes[p.mesh_id];
+  const auto& f = m.faces[p.face_id];
+  const auto& v = m.vertices;
+
+  const size_t index = (p.u > p.v) ? ((p.u > (1 - p.u - p.v)) ? (1) : (0))
+                                   : ((p.v > (1 - p.u - p.v)) ? (2) : (0));
+
+  point_selection.vertices = {v[f[index]].position};
+  point_selection.update();
 }
 
 }  // namespace viewer
