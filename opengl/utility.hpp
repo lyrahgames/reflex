@@ -9,6 +9,8 @@
 //
 #include <glm/ext.hpp>
 //
+#include <glm/gtx/norm.hpp>
+//
 #include <lyrahgames/xstd/builtin_types.hpp>
 
 namespace opengl {
@@ -16,6 +18,7 @@ namespace opengl {
 using namespace std;
 constexpr auto pi = std::numbers::pi_v<float>;
 
+using glm::distance2;
 using glm::ivec2;
 using glm::mat3;
 using glm::mat4;

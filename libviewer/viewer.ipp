@@ -18,7 +18,7 @@ viewer::viewer(int w, int h) : screen_width(w), screen_height(h) {
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   glClearColor(0.2, 0.2, 0.2, 1.0);
-  glPointSize(5.0f);
+  glPointSize(8.0f);
   glLineWidth(2.5f);
 
   calls["exit"] = s.create([this]() { stop(); });
@@ -330,14 +330,14 @@ void viewer::select_vertex(float x, float y) {
   ray r{cam.position(), direction};
   const auto p = scene.intersect(r);
 
-  cout << "x = " << x << '\n'
-       << "y = " << y << '\n'
-       << "mesh = " << p.mesh_id << '\n'
-       << "face = " << p.face_id << '\n'
-       << "u = " << p.u << '\n'
-       << "v = " << p.v << '\n'
-       << "t = " << p.t << '\n'
-       << endl;
+  // cout << "x = " << x << '\n'
+  //      << "y = " << y << '\n'
+  //      << "mesh = " << p.mesh_id << '\n'
+  //      << "face = " << p.face_id << '\n'
+  //      << "u = " << p.u << '\n'
+  //      << "v = " << p.v << '\n'
+  //      << "t = " << p.t << '\n'
+  //      << endl;
 
   if (!p) return;
 
@@ -345,10 +345,73 @@ void viewer::select_vertex(float x, float y) {
   const auto& f = m.faces[p.face_id];
   const auto& v = m.vertices;
 
-  const size_t index = (p.u > p.v) ? ((p.u > (1 - p.u - p.v)) ? (1) : (0))
-                                   : ((p.v > (1 - p.u - p.v)) ? (2) : (0));
+  // const size_t index = (p.u > p.v) ? ((p.u > (1 - p.u - p.v)) ? (1) : (0))
+  //                                  : ((p.v > (1 - p.u - p.v)) ? (2) : (0));
 
-  point_selection.vertices = {v[f[index]].position};
+  const auto position = r.origin + p.t * r.direction;
+
+  curve_points.push_back({p.mesh_id, p.face_id, p.u, p.v, position});
+
+  point_selection.vertices.push_back(position);
+  point_selection.update();
+
+  cout << "curve point count = " << curve_points.size() << endl;
+}
+
+void viewer::preprocess_curve() {
+  if (curve_points.empty()) return;
+
+  curve.vertices.clear();
+
+  const auto& p = curve_points[0];
+  const auto& m = scene.meshes[p.mesh_id];
+  const auto& f = m.faces[p.face_id];
+  const auto& v = m.vertices;
+  const auto index = voronoi_snap(
+      {v[f[0]].position, v[f[1]].position, v[f[2]].position}, p.position);
+
+  curve.mesh_id = p.mesh_id;
+  curve.vertices.push_back(f[index]);
+
+  size_t face_id = p.face_id;
+  bool max_insert = false;
+
+  for (size_t i = 1; i < curve_points.size(); ++i) {
+    const auto& p = curve_points[i];
+
+    if (p.mesh_id != curve.mesh_id) break;
+
+    const auto& m = scene.meshes[p.mesh_id];
+    const auto& f = m.faces[p.face_id];
+    const auto& v = m.vertices;
+    const auto id = voronoi_snap(
+        {v[f[0]].position, v[f[1]].position, v[f[2]].position}, p.position);
+    const auto vid = f[id];
+
+    if (vid != curve.vertices.back()) {
+      if (p.face_id == face_id) {
+        if (max_insert)
+          curve.vertices.back() = vid;
+        else {
+          curve.vertices.push_back(vid);
+          max_insert = true;
+        }
+      } else {
+        curve.vertices.push_back(vid);
+        face_id = p.face_id;
+        max_insert = false;
+      }
+    }
+  }
+
+  cout << "curve size = " << curve.vertices.size() << endl;
+
+  point_selection.vertices.clear();
+  for (auto vid : curve.vertices) {
+    const auto& m = scene.meshes[curve.mesh_id];
+    const auto& v = m.vertices;
+    point_selection.vertices.push_back(v[vid].position);
+  }
   point_selection.update();
 }
 

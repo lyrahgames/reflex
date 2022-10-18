@@ -66,6 +66,7 @@ int main(int argc, char* argv[]) {
                     (string("SFML ") + viewer::title).c_str(),
                     sf::Style::Default, settings);
   window.setVerticalSyncEnabled(true);
+  window.setKeyRepeatEnabled(false);
   window.setActive(true);
 
   glbinding::initialize(sf::Context::getFunction);
@@ -76,6 +77,8 @@ int main(int argc, char* argv[]) {
   if (option<"model">(options)) viewer.load_model(value<"model">(options));
 
   viewer.start();
+
+  bool drawing = false;
 
   auto old_mouse_pos = sf::Mouse::getPosition(window);
   while (viewer.running()) {
@@ -92,8 +95,12 @@ int main(int argc, char* argv[]) {
           case sf::Keyboard::Escape:
             viewer.stop();
             break;
+          case sf::Keyboard::P:
+            viewer.preprocess_curve();
+            break;
           case sf::Keyboard::Space:
-            viewer.select_vertex(old_mouse_pos.x, old_mouse_pos.y);
+            // viewer.select_vertex(old_mouse_pos.x, old_mouse_pos.y);
+            drawing = !drawing;
             break;
         }
       }
@@ -109,6 +116,10 @@ int main(int argc, char* argv[]) {
         viewer.turn({0.01 * mouse_move.x, 0.01 * mouse_move.y});
       if (sf::Mouse::isButtonPressed(sf::Mouse::Right))
         viewer.shift({mouse_move.x, mouse_move.y});
+
+      // if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space))
+      if (drawing && (mouse_move != sf::Vector2i{}))
+        viewer.select_vertex(old_mouse_pos.x, old_mouse_pos.y);
     }
 
     viewer.update();

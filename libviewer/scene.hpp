@@ -145,6 +145,7 @@ struct points {
 
   void render() {
     device_handle.bind();
+    glDrawArrays(GL_LINE_STRIP, 0, vertices.size());
     glDrawArrays(GL_POINTS, 0, vertices.size());
   }
 

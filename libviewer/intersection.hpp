@@ -37,4 +37,11 @@ inline bool intersect(const ray& r,
          (uvt.v >= 0.0f && uvt.u + uvt.v <= 1.0f) && (uvt.t > 0.0f);
 }
 
+inline auto voronoi_snap(const triangle& t, const vec3& x) noexcept -> size_t {
+  const auto a = distance2(x, t.vertex[0]);
+  const auto b = distance2(x, t.vertex[1]);
+  const auto c = distance2(x, t.vertex[2]);
+  return (a <= b) ? ((a <= c) ? 0 : 2) : ((b <= c) ? 1 : 2);
+}
+
 }  // namespace viewer

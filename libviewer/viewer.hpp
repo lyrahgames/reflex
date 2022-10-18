@@ -52,6 +52,8 @@ class viewer {
   void select_face(float x, float y);
   void select_vertex(float x, float y);
 
+  void preprocess_curve();
+
  private:
   bool running_ = false;
   int screen_width, screen_height;
@@ -80,6 +82,20 @@ class viewer {
   struct scene scene;
   mesh selection{};
   points point_selection{};
+
+  struct curve_point {
+    size_t mesh_id;
+    size_t face_id;
+    float u, v;
+    vec3 position;
+  };
+  vector<curve_point> curve_points{};
+
+  struct mesh_curve {
+    size_t mesh_id;
+    vector<size_t> vertices{};
+  };
+  mesh_curve curve{};
 
   vec3 aabb_min{};
   vec3 aabb_max{};
