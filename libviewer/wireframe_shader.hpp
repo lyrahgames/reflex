@@ -120,8 +120,8 @@ inline auto wireframe_shader() -> shader_program {
       "  float d = min(edge_distance.x, edge_distance.y);"
       "  d = min(d, edge_distance.z);"
       "  float line_width = 0.8;"
-      // "  vec4 line_color = vec4(0.8, 0.5, 0.0, 1.0);"
-      "  vec4 line_color = texture(material.texture, tuv);"
+      "  vec4 line_color = vec4(0.8, 0.5, 0.0, 1.0);"
+      // "  vec4 line_color = texture(material.texture, tuv);"
       "  float mix_value = smoothstep(line_width - 1, line_width + 1, d);"
       // Compute viewer shading.
       "  float ambient = 0.5;"

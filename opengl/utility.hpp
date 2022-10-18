@@ -16,6 +16,7 @@ namespace opengl {
 using namespace std;
 constexpr auto pi = std::numbers::pi_v<float>;
 
+using glm::ivec2;
 using glm::mat3;
 using glm::mat4;
 using glm::vec2;

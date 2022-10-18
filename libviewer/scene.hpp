@@ -2,6 +2,8 @@
 #include <libviewer/utility.hpp>
 //
 #include <stb_image.h>
+//
+#include <libviewer/intersection.hpp>
 
 namespace viewer {
 
@@ -48,6 +50,33 @@ struct face : array<uint32_t, 3> {};
 // using face = array<uint32_t, 3>;
 
 struct basic_mesh {
+  struct intersection : viewer::intersection {
+    operator bool() const noexcept { return face_id != -1; }
+    size_t face_id = -1;
+  };
+
+  auto intersect(const ray& r) -> intersection {
+    intersection result{};
+    for (size_t i = 0; i < faces.size(); ++i) {
+      viewer::intersection uvt{};
+      const auto intersected =
+          viewer::intersect(r,
+                            triangle{vertices[faces[i][0]].position,
+                                     vertices[faces[i][1]].position,
+                                     vertices[faces[i][2]].position},
+                            uvt);
+
+      if (!intersected) continue;
+      if (uvt.t >= result.t) continue;
+
+      result.face_id = i;
+      result.u = uvt.u;
+      result.v = uvt.v;
+      result.t = uvt.t;
+    }
+    return result;
+  }
+
   vector<vertex> vertices{};
   vector<face> faces{};
   int material_id = -1;
@@ -63,7 +92,7 @@ struct mesh : basic_mesh {
   void setup() noexcept {
     device_handle.bind();
     device_vertices.bind();
-    device_faces.bind();
+    // device_faces.bind();
 
     glEnableVertexAttribArray(position_attribute_location);
     glVertexAttribPointer(position_attribute_location, 3, GL_FLOAT, GL_FALSE,
@@ -97,6 +126,28 @@ struct mesh : basic_mesh {
   vertex_buffer device_vertices{};
   element_buffer device_faces{};
 };
+
+// struct marked_triangle {
+//   marked_triangle(const mesh& m, size_t face_id) noexcept : mesh_ref{m} {
+//     device_handle.bind();
+//     device_vertices.bind();
+
+//     face f{m.vertices[m.faces[face_id][0]],  //
+//            m.vertices[m.faces[face_id][1]],  //
+//            m.vertices[m.faces[face_id][2]]};
+
+//     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(face), m.faces[face_id].data(),
+//                  GL_STATIC_DRAW);
+//   }
+
+//   void render() const noexcept {
+//     device_handle.bind();
+//     glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, 0);
+//   }
+
+//   vertex_array device_handle{};
+//   vertex_buffer device_vertices{};
+// };
 
 struct scene {
   scene() {
@@ -162,13 +213,22 @@ struct scene {
     for (auto& mesh : meshes) mesh.update();
   }
 
-  void render(shader_program& shader) const noexcept {
+  void set_uniforms(shader_program& shader) const noexcept {
     shader.bind();
     shader.set("model", model_matrix);
 
     const auto normal_matrix = inverse(transpose(mat3(model_matrix)));
     shader.set("normal_matrix", normal_matrix);
+  }
 
+  void render(shader_program& shader, const mesh& m) const noexcept {
+    set_uniforms(shader);
+    materials[m.material_id].bind(shader);
+    m.render();
+  }
+
+  void render(shader_program& shader) const noexcept {
+    set_uniforms(shader);
     for (const auto& mesh : meshes) {
       materials[mesh.material_id].bind(shader);
       mesh.render();
@@ -176,7 +236,27 @@ struct scene {
   }
 
   void animate(float dt) noexcept {
-    model_matrix = rotate(model_matrix, 0.1f * dt, normalize(vec3(1, 1, 1)));
+    // model_matrix = rotate(model_matrix, 0.1f * dt, normalize(vec3(1, 1, 1)));
+  }
+
+  struct intersection : mesh::intersection {
+    operator bool() const noexcept { return mesh_id != -1; }
+    size_t mesh_id = -1;
+  };
+
+  auto intersect(const ray& r) -> intersection {
+    intersection result{};
+    for (size_t i = 0; i < meshes.size(); ++i) {
+      const auto p = meshes[i].intersect(r);
+      if (!p) continue;
+      if (p.t >= result.t) continue;
+      result.mesh_id = i;
+      result.face_id = p.face_id;
+      result.u = p.u;
+      result.v = p.v;
+      result.t = p.t;
+    }
+    return result;
   }
 
   vector<mesh> meshes{};

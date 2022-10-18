@@ -22,6 +22,7 @@ class vertex_array {
   operator GLuint() const { return handle; }
 
   void bind() const { glBindVertexArray(handle); }
+  void unbind() const { glBindVertexArray(0); }
 
   // private:
   GLuint handle{};  // value zero is ignored

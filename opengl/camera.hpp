@@ -3,105 +3,108 @@
 
 namespace opengl {
 
+// GLM already provides functions to construct the view and projection matrix.
+// So, what is the exact purpose of the camera?
+// It enables user interaction by providing easy access to up and right vectors
+// and to the pixel size.
+// This way, we have a proper way to combine
+// seamlessly ray tracing with rasterization.
+//
+// The tripod should actually be used as a base class
+// for further specialization of cameras.
+// Tripod provides look_at, rotate in four variations,
+// translate in four variations, and construction of view and inverse view matrix.
+//
+// For now, I will remove all caching from the camera until a better design pops up.
+
 class camera {
  public:
-  constexpr camera(int w = 500,
-                   int h = 500,
-                   float yfov = 45.0f,
-                   float n = 0.1f,
-                   float f = 1000.0f) noexcept {
-    set_perspective(w, h, yfov, n, f);
+  constexpr camera() noexcept = default;
+
+  constexpr auto right() const noexcept { return x; }
+  constexpr auto up() const noexcept { return y; }
+  constexpr auto front() const noexcept { return z; }
+  constexpr auto position() const noexcept { return o; }
+
+  constexpr auto direction() const noexcept { return -z; }
+
+  constexpr auto vfov() const noexcept { return fov; }
+  constexpr auto hfov() const noexcept {
+    return 2.0f * atan(tan(0.5f * fov) * pixels.x / pixels.y);
   }
 
-  constexpr auto position() const noexcept { return pos; }
-  constexpr auto direction() const noexcept { return dir; }
-  constexpr auto right() const noexcept { return r; }
-  constexpr auto up() const noexcept { return u; }
-  constexpr auto front() const noexcept { return -dir; }
+  constexpr auto screen_width() const noexcept { return pixels.x; }
+  constexpr auto screen_height() const noexcept { return pixels.y; }
 
-  constexpr auto hfov() const noexcept { return fov.x; }
-  constexpr auto vfov() const noexcept { return fov.y; }
+  constexpr auto near() const noexcept { return z_min; }
+  constexpr auto far() const noexcept { return z_max; }
 
-  constexpr auto screen_width() const noexcept { return width; }
-  constexpr auto screen_height() const noexcept { return height; }
+  constexpr auto aspect_ratio() const noexcept {
+    return float(pixels.x) / pixels.y;
+  }
 
-  constexpr auto near() const noexcept { return dmin; }
-  constexpr auto far() const noexcept { return dmax; }
+  constexpr auto pixel_size() const noexcept {
+    return 2.0f * tan(0.5f * vfov()) / pixels.y;
+  }
 
-  constexpr auto aspect_ratio() const noexcept { return ratio; }
-  constexpr auto pixel_size() const noexcept { return pixel; }
+  auto view_matrix() const noexcept {
+    return lookAt(position(), position() + direction(), up());
+  }
 
-  constexpr const auto& view_matrix() const noexcept { return view; }
   auto projection_matrix() const noexcept {
     return glm::perspective(vfov(), aspect_ratio(), near(), far());
   }
+
   auto viewport_matrix() const noexcept {
     return scale(  //
         mat4{1.0f}, {screen_width() / 2.0f, screen_height() / 2.0f, 1.0f});
   }
 
-  constexpr auto set_perspective(int w,
-                                 int h,
-                                 float yfov,
-                                 float n,
-                                 float f) noexcept -> camera& {
-    width = w;
-    height = h;
-
-    ratio = float(w) / h;
-    fov.y = yfov;
-    fov.x = ratio * fov.y;
-
-    pixel = 2.0f * tan(pi / 180.0f * fov.y / 2) / height;
-
-    dmin = n;
-    dmax = f;
-
+  constexpr auto set_screen_resolution(int w, int h) noexcept -> camera& {
+    pixels.x = w;
+    pixels.y = h;
     return *this;
   }
 
-  auto set_screen_resolution(int w, int h) noexcept -> camera& {
-    set_perspective(w, h, fov.y, dmin, dmax);
+  constexpr auto set_vfov(float radians) noexcept -> camera& {
+    fov = radians;
     return *this;
   }
 
-  auto set_near_and_far(float n, float f) noexcept -> camera& {
-    set_perspective(width, height, fov.y, n, f);
+  constexpr auto set_hfov(float radians) noexcept -> camera& {
+    fov = 2.0f * atan(tan(0.5f * radians) * pixels.y / pixels.x);
     return *this;
   }
 
-  auto move(const vec3& t) noexcept -> camera& {
-    pos = t;
-    view = translate(mat4{1}, t);
+  constexpr auto set_near_and_far(float n, float f) noexcept -> camera& {
+    z_min = n;
+    z_max = f;
+    return *this;
+  }
+
+  constexpr auto move(const vec3& t) noexcept -> camera& {
+    o = t;
     return *this;
   }
 
   auto look_at(const vec3& focus, const vec3& rel_up) noexcept -> camera& {
-    dir = normalize(focus - pos);
-    r = normalize(cross(-dir, rel_up));
-    u = normalize(cross(r, -dir));
-    view = lookAt(pos, focus, rel_up);
+    z = normalize(o - focus);
+    x = normalize(cross(rel_up, z));
+    y = normalize(cross(z, x));
     return *this;
   }
 
  private:
-  vec3 pos{};
-  vec3 dir{0, 0, -1};
-  vec3 u{0, 1, 0};  // up
-  vec3 r{1, 0, 0};  // right
+  vec3 x{1, 0, 0};
+  vec3 y{0, 1, 0};
+  vec3 z{0, 0, 1};
+  vec3 o{0, 0, 0};
 
-  vec2 fov{45.0f, 45.0f};
+  ivec2 pixels{500, 500};
+  float fov = pi / 4;
 
-  int width = 500;
-  int height = 500;
-
-  float ratio = 1;
-  float pixel;
-
-  float dmin = 0.01f;
-  float dmax = 100.0f;
-
-  mat4 view{1};
+  float z_min = 0.1f;
+  float z_max = 1000.0f;
 };
 
 }  // namespace opengl

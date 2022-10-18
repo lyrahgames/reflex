@@ -86,8 +86,11 @@ void viewer::update() {
 void viewer::render() {
   // Clear the screen.
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+  glDepthFunc(GL_LESS);
   scene.render(shader);
+
+  glDepthFunc(GL_ALWAYS);
+  scene.render(selection_shader, selection);
 }
 
 void viewer::update_view() {
@@ -104,8 +107,45 @@ void viewer::update_view() {
   cam.set_near_and_far(std::max(1e-3f * radius, radius - bounding_radius),
                        radius + bounding_radius);
 
+  // cout << "camera ar = " << cam.aspect_ratio() << '\n'
+  //      << "camera fov = " << (pi / 180.0f * cam.vfov()) << '\n'
+  //      << "scale = " << 1.0f / std::tan(cam.vfov() / 2) << '\n'
+  //      << "camera pixel = " << cam.pixel_size() << '\n'
+  //      << "camera near = " << cam.near() << '\n'
+  //      << "camera far = " << cam.far() << '\n'
+  //      << "camera position = " << cam.position() << '\n'
+  //      << "camera direction = " << cam.direction() << '\n'
+  //      << "camera right = " << cam.right() << '\n'
+  //      << "camera up = " << cam.up() << '\n'
+  //      << "inv translate = "
+  //      << -vec3{dot(cam.right(), cam.position()), dot(cam.up(), cam.position()),
+  //               dot(cam.front(), cam.position())}
+  //      << '\n'
+  //      << '\n';
+
+  // const auto view_matrix = glm::lookAt(p, origin, up);
+  // cout << "view = \n";
+  // for (size_t i = 0; i < 4; ++i) {
+  //   for (size_t j = 0; j < 4; ++j) cout << setw(15) << cam.view_matrix()[j][i];
+  //   cout << '\n';
+  // }
+
+  // cout << "\nprojection = \n";
+  // for (size_t i = 0; i < 4; ++i) {
+  //   for (size_t j = 0; j < 4; ++j)
+  //     cout << setw(15) << cam.projection_matrix()[j][i];
+  //   cout << '\n';
+  // }
+  // cout << endl;
+
   shader.bind();
   shader  //
+      .set("camera.projection", cam.projection_matrix())
+      .set("camera.view", cam.view_matrix())
+      .set("camera.viewport", cam.viewport_matrix());
+
+  selection_shader.bind();
+  selection_shader  //
       .set("camera.projection", cam.projection_matrix())
       .set("camera.view", cam.view_matrix())
       .set("camera.viewport", cam.viewport_matrix());
@@ -120,8 +160,8 @@ void viewer::turn(const vec2& angle) {
 }
 
 void viewer::shift(const vec2& pixels) {
-  const auto shift = pixels.x * cam.right() + pixels.y * cam.up();
-  const auto scale = 1.3f * cam.pixel_size() * radius;
+  const auto shift = -pixels.x * cam.right() + pixels.y * cam.up();
+  const auto scale = cam.pixel_size() * radius;
   origin += scale * shift;
   view_should_update = true;
 }
@@ -158,8 +198,7 @@ void viewer::fit_view() {
 
   origin = 0.5f * (aabb_max + aabb_min);
   bounding_radius = 0.5f * length(aabb_max - aabb_min);
-  radius = 0.5f * length(aabb_max - aabb_min) *
-           (1.0f / tan(0.5f * cam.vfov() * pi / 180.0f));
+  radius = 0.5f * length(aabb_max - aabb_min) / tan(0.5f * cam.vfov());
   cam.set_near_and_far(1e-4f * radius, 2 * radius);
   view_should_update = true;
 }
@@ -245,6 +284,33 @@ void viewer::load_shader(czstring path) {
 
   shader = shader_from_file(path);
   view_should_update = true;
+}
+
+void viewer::select_face(float x, float y) {
+  const auto direction = normalize(
+      cam.direction() +
+      cam.pixel_size() * ((x - 0.5f * cam.screen_width()) * cam.right() +
+                          (0.5f * cam.screen_height() - y) * cam.up()));
+  ray r{cam.position(), direction};
+  const auto p = scene.intersect(r);
+
+  if (p) {
+    const auto& m = scene.meshes[p.mesh_id];
+    const auto& f = m.faces[p.face_id];
+    selection.vertices = {m.vertices[f[0]], m.vertices[f[1]], m.vertices[f[2]]};
+    selection.faces = {{0, 1, 2}};
+    selection.material_id = m.material_id;
+    selection.update();
+  }
+
+  // cout << "x = " << x << '\n'
+  //      << "y = " << y << '\n'
+  //      << "mesh = " << p.mesh_id << '\n'
+  //      << "face = " << p.face_id << '\n'
+  //      << "u = " << p.u << '\n'
+  //      << "v = " << p.v << '\n'
+  //      << "t = " << p.t << '\n'
+  //      << endl;
 }
 
 }  // namespace viewer

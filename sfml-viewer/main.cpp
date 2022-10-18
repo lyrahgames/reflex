@@ -92,6 +92,9 @@ int main(int argc, char* argv[]) {
           case sf::Keyboard::Escape:
             viewer.stop();
             break;
+          case sf::Keyboard::Space:
+            viewer.select_face(old_mouse_pos.x, old_mouse_pos.y);
+            break;
         }
       }
     }

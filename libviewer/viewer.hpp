@@ -48,12 +48,16 @@ class viewer {
 
   void interpret_command(const string& line);
 
+  void select_face(float x, float y);
+
  private:
   bool running_ = false;
   int screen_width, screen_height;
   time_type time = clock::now();
 
   shader_program shader = default_shader();
+
+  shader_program selection_shader = wireframe_shader();
 
   // World Origin
   vec3 origin;
@@ -71,6 +75,7 @@ class viewer {
   camera cam{};
 
   struct scene scene;
+  mesh selection{};
 
   vec3 aabb_min{};
   vec3 aabb_max{};
