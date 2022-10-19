@@ -1,12 +1,10 @@
 #include <string>
 //
+#include "utility.hpp"
+//
 #include <SFML/Graphics.hpp>
 //
-#include <glbinding/gl/gl.h>
-#include <glbinding/glbinding.h>
-using namespace gl;
-//
-#include <libviewer/viewer.ipp>
+#include <libviewer/viewer.hpp>
 //
 #include <lyrahgames/options/options.hpp>
 //

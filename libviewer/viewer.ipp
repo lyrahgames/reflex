@@ -2,8 +2,12 @@
 //
 #include <libviewer/loader.hpp>
 //
-#define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
+//
+#include <libviewer/contours_shader.hpp>
+#include <libviewer/default_shader.hpp>
+#include <libviewer/point_shader.hpp>
+#include <libviewer/wireframe_shader.hpp>
 
 namespace viewer {
 
@@ -23,6 +27,10 @@ viewer::viewer(int w, int h) : screen_width(w), screen_height(h) {
   glClearColor(0.2, 0.2, 0.2, 1.0);
   glPointSize(10.0f);
   glLineWidth(2.5f);
+
+  shader = default_shader();
+  selection_shader = wireframe_shader();
+  point_selection_shader = point_shader();
 
   // device_camera.bind();
   // glBufferData(GL_UNIFORM_BUFFER, 5 * sizeof(mat4), nullptr, GL_STATIC_DRAW);

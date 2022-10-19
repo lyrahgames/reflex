@@ -20,7 +20,7 @@ inline auto point_shader() -> shader_program {
       "void main(){"
       "  vec4 x = camera.view * vec4(p, 1.0);"
       "  gl_Position = camera.projection * x;"
-      "  gl_PointSize = 10;"
+      "  gl_PointSize = 15;"
       "}";
 
   constexpr czstring fragment_shader_text =

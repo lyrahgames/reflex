@@ -4,11 +4,6 @@
 #include <libviewer/scene.hpp>
 #include <libviewer/socket.hpp>
 #include <libviewer/utility.hpp>
-//
-#include <libviewer/contours_shader.hpp>
-#include <libviewer/default_shader.hpp>
-#include <libviewer/point_shader.hpp>
-#include <libviewer/wireframe_shader.hpp>
 
 namespace viewer {
 
@@ -59,10 +54,9 @@ class viewer {
   int screen_width, screen_height;
   time_type time = clock::now();
 
-  shader_program shader = default_shader();
-
-  shader_program selection_shader = wireframe_shader();
-  shader_program point_selection_shader = point_shader();
+  shader_program shader{};
+  shader_program selection_shader{};
+  shader_program point_selection_shader{};
 
   // World Origin
   vec3 origin;
