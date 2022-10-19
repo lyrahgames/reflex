@@ -15,6 +15,7 @@ inline auto wireframe_shader() -> shader_program {
       "uniform Camera camera;"
 
       "uniform mat4 model;"
+      "uniform mat4 normal_matrix;"
 
       "layout (location = 0) in vec3 p;"
       "layout (location = 1) in vec3 n;"

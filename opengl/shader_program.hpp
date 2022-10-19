@@ -60,29 +60,164 @@ class shader_program {
 
   bool exists() const { return glIsProgram(handle) == GL_TRUE; }
 
-  auto set(czstring name, float value) -> shader_program& {
-    glUniform1f(glGetUniformLocation(handle, name), value);
+  // auto set(czstring name, float value) -> shader_program& {
+  //   glUniform1f(glGetUniformLocation(handle, name), value);
+  //   return *this;
+  // }
+
+  // auto set(czstring name, mat3 data) -> shader_program& {
+  //   glUniformMatrix3fv(glGetUniformLocation(handle, name), 1, GL_FALSE,
+  //                      value_ptr(data));
+  //   return *this;
+  // }
+
+  // auto set(czstring name, mat4 data) -> shader_program& {
+  //   glUniformMatrix4fv(glGetUniformLocation(handle, name), 1, GL_FALSE,
+  //                      value_ptr(data));
+  //   return *this;
+  // }
+  // auto set(czstring name, vec3 data) -> shader_program& {
+  //   glUniform3fv(glGetUniformLocation(handle, name), 1, value_ptr(data));
+  //   return *this;
+  // }
+  // auto set(czstring name, vec4 data) -> shader_program& {
+  //   glUniform4fv(glGetUniformLocation(handle, name), 1, value_ptr(data));
+  //   return *this;
+  // }
+
+  auto set(czstring name, auto&& value) -> shader_program& {
+    try_set(valid_uniform_location(name), forward<decltype(value)>(value));
     return *this;
   }
 
-  auto set(czstring name, mat3 data) -> shader_program& {
-    glUniformMatrix3fv(glGetUniformLocation(handle, name), 1, GL_FALSE,
-                       value_ptr(data));
+  auto try_set(czstring name, auto&& value) noexcept -> shader_program& {
+    try_set(uniform_location(name), forward<decltype(value)>(value));
     return *this;
   }
 
-  auto set(czstring name, mat4 data) -> shader_program& {
-    glUniformMatrix4fv(glGetUniformLocation(handle, name), 1, GL_FALSE,
-                       value_ptr(data));
-    return *this;
+ private:
+  auto uniform_location(czstring name) noexcept {
+    return glGetUniformLocation(handle, name);
   }
-  auto set(czstring name, vec3 data) -> shader_program& {
-    glUniform3fv(glGetUniformLocation(handle, name), 1, value_ptr(data));
-    return *this;
+  auto valid_uniform_location(czstring name) {
+    const auto result = uniform_location(name);
+    if (result == -1)
+      throw invalid_argument(
+          string("Failed to receive valid uniform location for '") + name +
+          "'.");
+    return result;
   }
-  auto set(czstring name, vec4 data) -> shader_program& {
-    glUniform4fv(glGetUniformLocation(handle, name), 1, value_ptr(data));
-    return *this;
+
+  static void try_set(GLint location, float value) noexcept {
+    glUniform1f(location, value);
+  }
+  static void try_set(GLint location, float x, float y) noexcept {
+    glUniform2f(location, x, y);
+  }
+  static void try_set(GLint location, float x, float y, float z) noexcept {
+    glUniform3f(location, x, y, z);
+  }
+  static void try_set(GLint location,
+                      float x,
+                      float y,
+                      float z,
+                      float w) noexcept {
+    glUniform4f(location, x, y, z, w);
+  }
+
+  static void try_set(GLint location, GLint value) noexcept {
+    glUniform1i(location, value);
+  }
+  static void try_set(GLint location, GLint x, GLint y) noexcept {
+    glUniform2i(location, x, y);
+  }
+  static void try_set(GLint location, GLint x, GLint y, GLint z) noexcept {
+    glUniform3i(location, x, y, z);
+  }
+  static void try_set(GLint location,
+                      GLint x,
+                      GLint y,
+                      GLint z,
+                      GLint w) noexcept {
+    glUniform4i(location, x, y, z, w);
+  }
+
+  static void try_set(GLint location, GLuint value) noexcept {
+    glUniform1ui(location, value);
+  }
+  static void try_set(GLint location, GLuint x, GLuint y) noexcept {
+    glUniform2ui(location, x, y);
+  }
+  static void try_set(GLint location, GLuint x, GLuint y, GLuint z) noexcept {
+    glUniform3ui(location, x, y, z);
+  }
+  static void try_set(GLint location,
+                      GLuint x,
+                      GLuint y,
+                      GLuint z,
+                      GLuint w) noexcept {
+    glUniform4ui(location, x, y, z, w);
+  }
+
+  static void try_set(GLint location, const vec2& value) noexcept {
+    try_set(location, value.x, value.y);
+  }
+  static void try_set(GLint location, const vec3& value) noexcept {
+    try_set(location, value.x, value.y, value.z);
+  }
+  static void try_set(GLint location, const vec4& value) noexcept {
+    try_set(location, value.x, value.y, value.z, value.w);
+  }
+
+  static void try_set(GLint location, const ivec2& value) noexcept {
+    try_set(location, value.x, value.y);
+  }
+  static void try_set(GLint location, const ivec3& value) noexcept {
+    try_set(location, value.x, value.y, value.z);
+  }
+  static void try_set(GLint location, const ivec4& value) noexcept {
+    try_set(location, value.x, value.y, value.z, value.w);
+  }
+
+  static void try_set(GLint location, const uvec2& value) noexcept {
+    try_set(location, value.x, value.y);
+  }
+  static void try_set(GLint location, const uvec3& value) noexcept {
+    try_set(location, value.x, value.y, value.z);
+  }
+  static void try_set(GLint location, const uvec4& value) noexcept {
+    try_set(location, value.x, value.y, value.z, value.w);
+  }
+
+  static void try_set(GLint location, const mat2& value) noexcept {
+    glUniformMatrix2fv(location, 1, GL_FALSE, value_ptr(value));
+  }
+  static void try_set(GLint location, const mat3& value) noexcept {
+    glUniformMatrix3fv(location, 1, GL_FALSE, value_ptr(value));
+  }
+  static void try_set(GLint location, const mat4& value) noexcept {
+    glUniformMatrix4fv(location, 1, GL_FALSE, value_ptr(value));
+  }
+
+  static void try_set(GLint location, const mat2x3& value) noexcept {
+    glUniformMatrix2x3fv(location, 1, GL_FALSE, value_ptr(value));
+  }
+  static void try_set(GLint location, const mat3x2& value) noexcept {
+    glUniformMatrix3x2fv(location, 1, GL_FALSE, value_ptr(value));
+  }
+
+  static void try_set(GLint location, const mat2x4& value) noexcept {
+    glUniformMatrix2x4fv(location, 1, GL_FALSE, value_ptr(value));
+  }
+  static void try_set(GLint location, const mat4x2& value) noexcept {
+    glUniformMatrix4x2fv(location, 1, GL_FALSE, value_ptr(value));
+  }
+
+  static void try_set(GLint location, const mat3x4& value) noexcept {
+    glUniformMatrix3x4fv(location, 1, GL_FALSE, value_ptr(value));
+  }
+  static void try_set(GLint location, const mat4x3& value) noexcept {
+    glUniformMatrix4x3fv(location, 1, GL_FALSE, value_ptr(value));
   }
 
  private:

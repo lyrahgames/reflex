@@ -29,11 +29,11 @@ struct material : basic_material {
   void bind(shader_program& shader) const noexcept {
     glActiveTexture(GL_TEXTURE0);
     shader  //
-        .set("material.texture", 0)
-        .set("material.ambient", ambient)
-        .set("material.diffuse", diffuse)
-        .set("material.specular", specular)
-        .set("material.shininess", shininess);
+        .try_set("material.texture", 0)
+        .try_set("material.ambient", ambient)
+        .try_set("material.diffuse", diffuse)
+        .try_set("material.specular", specular)
+        .try_set("material.shininess", shininess);
     glBindTexture(GL_TEXTURE_2D, device_texture);
   }
 
@@ -77,9 +77,25 @@ struct basic_mesh {
     return result;
   }
 
+  void compute_edges() {
+    edges.clear();
+    for (const auto& f : faces) {
+      ++edges[pair{min(f[0], f[1]), max(f[0], f[1])}];
+      ++edges[pair{min(f[1], f[2]), max(f[1], f[2])}];
+      ++edges[pair{min(f[2], f[0]), max(f[2], f[0])}];
+    }
+  }
+
   vector<vertex> vertices{};
   vector<face> faces{};
   int material_id = -1;
+
+  unordered_map<pair<size_t, size_t>, int, decltype([](const auto& x) {
+                  return (x.first << 7) ^ x.second;
+                })>
+      edges{};
+  vector<size_t> neighbor_offset{};
+  vector<size_t> neighbors{};
 };
 
 struct mesh : basic_mesh {
@@ -145,7 +161,7 @@ struct points {
 
   void render() {
     device_handle.bind();
-    glDrawArrays(GL_LINE_STRIP, 0, vertices.size());
+    // glDrawArrays(GL_LINE_STRIP, 0, vertices.size());
     glDrawArrays(GL_POINTS, 0, vertices.size());
   }
 
@@ -237,15 +253,18 @@ struct scene {
       textures.emplace(material.texture_path, move(texture));
     }
 
-    for (auto& mesh : meshes) mesh.update();
+    for (auto& mesh : meshes) {
+      mesh.update();
+      mesh.compute_edges();
+    }
   }
 
   void set_uniforms(shader_program& shader) const noexcept {
     shader.bind();
-    shader.set("model", model_matrix);
+    shader.try_set("model", model_matrix);
 
     const auto normal_matrix = inverse(transpose(mat3(model_matrix)));
-    shader.set("normal_matrix", normal_matrix);
+    shader.try_set("normal_matrix", normal_matrix);
   }
 
   void render(shader_program& shader, const mesh& m) const noexcept {

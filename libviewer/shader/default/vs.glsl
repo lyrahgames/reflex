@@ -1,4 +1,4 @@
-#version 330 core
+#version 420 core
 
 struct Camera {
   mat4 projection;
@@ -7,6 +7,17 @@ struct Camera {
 };
 
 uniform Camera camera;
+
+// layout (std140, binding = 0)
+// uniform camera_block {
+//   mat4 projection;
+//   mat4 view;
+//   Camera cam;
+// };
+
+uniform mat4 projection;
+uniform mat4 view;
+
 uniform mat4 model;
 uniform mat3 normal_matrix;
 
@@ -20,7 +31,7 @@ out vertex_data {
 } v;
 
 void main(){
-  gl_Position = camera.projection * camera.view * model * vec4(p, 1.0);
+  gl_Position = projection * view * model * vec4(p, 1.0);
   v.normal = vec3(camera.view * vec4(normal_matrix * n, 0.0));
   v.texuv = uv;
 }

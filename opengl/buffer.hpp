@@ -30,5 +30,6 @@ class buffer {
 
 using vertex_buffer = buffer<GL_ARRAY_BUFFER>;
 using element_buffer = buffer<GL_ELEMENT_ARRAY_BUFFER>;
+using uniform_buffer = buffer<GL_UNIFORM_BUFFER>;
 
 }  // namespace opengl

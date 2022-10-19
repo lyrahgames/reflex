@@ -15,11 +15,18 @@ viewer::viewer(int w, int h) : screen_width(w), screen_height(h) {
   // Setup for OpenGL
   glEnable(GL_MULTISAMPLE);
   glEnable(GL_DEPTH_TEST);
+  // glEnable(GL_POINT_SMOOTH);
+  // glEnable(GL_POINT_SPRITE);
+  glEnable(GL_PROGRAM_POINT_SIZE);
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   glClearColor(0.2, 0.2, 0.2, 1.0);
-  glPointSize(8.0f);
+  glPointSize(10.0f);
   glLineWidth(2.5f);
+
+  // device_camera.bind();
+  // glBufferData(GL_UNIFORM_BUFFER, 5 * sizeof(mat4), nullptr, GL_STATIC_DRAW);
+  // glBindBufferBase(GL_UNIFORM_BUFFER, 0, device_camera);
 
   calls["exit"] = s.create([this]() { stop(); });
   calls["load_shader"] =
@@ -141,6 +148,19 @@ void viewer::update_view() {
   // }
   // cout << endl;
 
+  // device_camera.bind();
+  // glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(mat4),
+  //                 value_ptr(cam.projection_matrix()));
+  // glBufferSubData(GL_UNIFORM_BUFFER, sizeof(mat4), sizeof(mat4),
+  //                 value_ptr(cam.view_matrix()));
+  // glBufferSubData(GL_UNIFORM_BUFFER, 2 * sizeof(mat4), sizeof(mat4),
+  //                 value_ptr(cam.projection_matrix()));
+  // glBufferSubData(GL_UNIFORM_BUFFER, 3 * sizeof(mat4), sizeof(mat4),
+  //                 value_ptr(cam.view_matrix()));
+  shader.bind();
+  shader.set("projection", cam.projection_matrix())
+      .set("view", cam.view_matrix());
+
   shader.bind();
   shader  //
       .set("camera.projection", cam.projection_matrix())
@@ -245,6 +265,8 @@ void viewer::load_model(czstring file_path) {
   fit_view();
   scene.update();
   view_should_update = true;
+
+  // cout << "edges = " << scene.meshes[0].edges.size() << endl;
 }
 
 void viewer::load_shader(czstring path) {
@@ -293,6 +315,10 @@ void viewer::load_shader(czstring path) {
 
   shader = shader_from_file(path);
   view_should_update = true;
+
+  const auto index = glGetUniformLocation(shader, "projection");
+  cout << "index = " << index << endl;
+  if (index == GL_INVALID_INDEX) cout << "index is invalid" << endl;
 }
 
 void viewer::select_face(float x, float y) {
@@ -386,21 +412,25 @@ void viewer::preprocess_curve() {
     const auto& v = m.vertices;
     const auto id = voronoi_snap(
         {v[f[0]].position, v[f[1]].position, v[f[2]].position}, p.position);
-    const auto vid = f[id];
+    size_t vid = f[id];
 
     if (vid != curve.vertices.back()) {
-      if (p.face_id == face_id) {
-        if (max_insert)
-          curve.vertices.back() = vid;
-        else {
-          curve.vertices.push_back(vid);
-          max_insert = true;
-        }
-      } else {
+      if (curve.vertices.size() <= 1) {
         curve.vertices.push_back(vid);
-        face_id = p.face_id;
-        max_insert = false;
+        continue;
       }
+
+      const auto a = curve.vertices[curve.vertices.size() - 1];
+      const auto b = curve.vertices[curve.vertices.size() - 2];
+
+      if (vid == b) continue;
+
+      if (/*m.edges.contains(pair{min(a, b), max(a, b)}) &&*/
+          m.edges.contains(pair{min(vid, a), max(vid, a)}) &&
+          m.edges.contains(pair{min(vid, b), max(vid, b)}))
+        curve.vertices.back() = vid;
+      else
+        curve.vertices.push_back(vid);
     }
   }
 
