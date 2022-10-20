@@ -124,13 +124,22 @@ struct mesh : basic_mesh {
   }
 
   void update() noexcept {
-    device_vertices.bind();
-    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(vertex),
-                 vertices.data(), GL_STATIC_DRAW);
+    // device_vertices.bind();
+    // glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(vertex),
+    //              vertices.data(), GL_STATIC_DRAW);
 
-    device_faces.bind();
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, faces.size() * sizeof(face),
-                 faces.data(), GL_STATIC_DRAW);
+    // device_faces.bind();
+    // glBufferData(GL_ELEMENT_ARRAY_BUFFER, faces.size() * sizeof(face),
+    //              faces.data(), GL_STATIC_DRAW);
+
+    // device_vertices.initialize(vertices.data(), vertices.size());
+    // device_faces.initialize(faces.data(), faces.size());
+
+    device_vertices.allocate_and_initialize(vertices);
+    device_faces.allocate_and_initialize(faces);
+
+    // device_vertices = vertices;
+    // device_faces = faces;
   }
 
   void render() const noexcept {

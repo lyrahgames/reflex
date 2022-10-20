@@ -8,15 +8,11 @@ struct Camera {
 
 uniform Camera camera;
 
-// layout (std140, binding = 0)
-// uniform camera_block {
-//   mat4 projection;
-//   mat4 view;
-//   Camera cam;
-// };
-
-uniform mat4 projection;
-uniform mat4 view;
+layout (std140, binding = 0)
+uniform uniforms {
+  mat4 projection;
+  mat4 view;
+};
 
 uniform mat4 model;
 uniform mat3 normal_matrix;

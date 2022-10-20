@@ -36,6 +36,8 @@ viewer::viewer(int w, int h) : screen_width(w), screen_height(h) {
   // glBufferData(GL_UNIFORM_BUFFER, 5 * sizeof(mat4), nullptr, GL_STATIC_DRAW);
   // glBindBufferBase(GL_UNIFORM_BUFFER, 0, device_camera);
 
+  device_uniforms.set_binding(0).allocate(2 * sizeof(mat4));
+
   calls["exit"] = s.create([this]() { stop(); });
   calls["load_shader"] =
       s.create([this](string path) { load_shader(path.c_str()); });
@@ -165,9 +167,14 @@ void viewer::update_view() {
   //                 value_ptr(cam.projection_matrix()));
   // glBufferSubData(GL_UNIFORM_BUFFER, 3 * sizeof(mat4), sizeof(mat4),
   //                 value_ptr(cam.view_matrix()));
-  shader.bind();
-  shader.set("projection", cam.projection_matrix())
-      .set("view", cam.view_matrix());
+
+  device_uniforms  //
+      .write(cam.projection_matrix())
+      .write(cam.view_matrix(), sizeof(mat4));
+
+  // shader.bind();
+  // shader.set("projection", cam.projection_matrix())
+  //     .set("view", cam.view_matrix());
 
   shader.bind();
   shader  //

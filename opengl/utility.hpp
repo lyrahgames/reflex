@@ -5,6 +5,10 @@
 #include <string>
 #include <string_view>
 //
+#include <concepts>
+#include <ranges>
+#include <type_traits>
+//
 #include <glm/glm.hpp>
 //
 #include <glm/ext.hpp>
@@ -45,6 +49,11 @@ using glm::mat4x3;
 
 using namespace lyrahgames::xstd;
 
+namespace generic {
+template <typename T>
+concept transferable = is_trivially_copyable_v<T>;
+}
+
 // 'czstring' is used because the given file path is only read once.
 inline auto string_from_file(czstring file_path) -> string {
   // We will read all characters as block.
@@ -61,6 +70,38 @@ inline auto string_from_file(czstring file_path) -> string {
   file.seekg(0);
   file.read(result.data(), size);
   return result;
+};
+
+// Need uniform interface to handle variable.
+// Need to inherit from standards.
+// So, the wrapper of a handle is useful.
+template <typename T>
+struct basic_handle {
+  using type = T;
+
+  constexpr basic_handle() noexcept = default;
+  constexpr basic_handle(type value) noexcept : handle{value} {}
+
+  constexpr operator type() noexcept { return handle; }
+
+ protected:
+  type handle{};
+};
+
+using object_handle = basic_handle<GLuint>;
+
+// Why reference?
+// Only using the handle itself will not allow you to use custom typed functions.
+// The handle itself will never statically know about bindings.
+// reference template will only store the handle without being able to delete it
+// base class should be a handle class
+// no default constructor allowed
+// but default destructor is mandatory
+// due to inheritance, every function from the base handle can be called
+template <typename T>
+struct reference : T::base {
+  using base = typename T::base;
+  reference(T& t) : base{t} {}
 };
 
 }  // namespace opengl

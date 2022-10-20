@@ -72,7 +72,7 @@ class viewer {
   bool view_should_update = true;
 
   camera cam{};
-  // uniform_buffer device_camera{};
+  uniform_buffer device_uniforms{};
 
   struct scene scene;
   mesh selection{};
