@@ -46,6 +46,10 @@ struct vertex {
   vec2 uv{};
 };
 
+using vertex_data =
+    named_tuple<static_identifier_list<"position", "normal", "uv">,
+                regular_tuple<vec3, vec3, vec2>>;
+
 struct face : array<uint32_t, 3> {};
 // using face = array<uint32_t, 3>;
 
@@ -106,21 +110,22 @@ struct mesh : basic_mesh {
   mesh() noexcept : basic_mesh() { setup(); }
 
   void setup() noexcept {
-    device_handle.bind();
+    // device_handle.bind();
     device_vertices.bind();
+    device_handle.template setup_aos<vertex_data>();
     // device_faces.bind();
 
-    glEnableVertexAttribArray(position_attribute_location);
-    glVertexAttribPointer(position_attribute_location, 3, GL_FLOAT, GL_FALSE,
-                          sizeof(vertex), (void*)offsetof(vertex, position));
+    // glEnableVertexAttribArray(position_attribute_location);
+    // glVertexAttribPointer(position_attribute_location, 3, GL_FLOAT, GL_FALSE,
+    //                       sizeof(vertex), (void*)offsetof(vertex, position));
 
-    glEnableVertexAttribArray(normal_attribute_location);
-    glVertexAttribPointer(normal_attribute_location, 3, GL_FLOAT, GL_FALSE,
-                          sizeof(vertex), (void*)offsetof(vertex, normal));
+    // glEnableVertexAttribArray(normal_attribute_location);
+    // glVertexAttribPointer(normal_attribute_location, 3, GL_FLOAT, GL_FALSE,
+    //                       sizeof(vertex), (void*)offsetof(vertex, normal));
 
-    glEnableVertexAttribArray(uv_attribute_location);
-    glVertexAttribPointer(uv_attribute_location, 2, GL_FLOAT, GL_FALSE,
-                          sizeof(vertex), (void*)offsetof(vertex, uv));
+    // glEnableVertexAttribArray(uv_attribute_location);
+    // glVertexAttribPointer(uv_attribute_location, 2, GL_FLOAT, GL_FALSE,
+    //                       sizeof(vertex), (void*)offsetof(vertex, uv));
   }
 
   void update() noexcept {
