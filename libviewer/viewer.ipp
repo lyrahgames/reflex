@@ -6,6 +6,7 @@
 //
 #include <libviewer/contours_shader.hpp>
 #include <libviewer/default_shader.hpp>
+#include <libviewer/line_shader.hpp>
 #include <libviewer/point_shader.hpp>
 #include <libviewer/wireframe_shader.hpp>
 
@@ -31,6 +32,7 @@ viewer::viewer(int w, int h) : screen_width(w), screen_height(h) {
   shader = default_shader();
   selection_shader = wireframe_shader();
   point_selection_shader = point_shader();
+  curve_shader = line_shader();
 
   // device_camera.bind();
   // glBufferData(GL_UNIFORM_BUFFER, 5 * sizeof(mat4), nullptr, GL_STATIC_DRAW);
@@ -111,6 +113,10 @@ void viewer::render() {
 
   point_selection_shader.bind();
   point_selection.render();
+
+  curve_shader.bind();
+  point_selection.device_handle.bind();
+  glDrawArrays(GL_LINE_STRIP, 0, point_selection.vertices.size());
 }
 
 void viewer::update_view() {
@@ -190,6 +196,12 @@ void viewer::update_view() {
 
   point_selection_shader.bind();
   point_selection_shader  //
+      .set("camera.projection", cam.projection_matrix())
+      .set("camera.view", cam.view_matrix())
+      .set("camera.viewport", cam.viewport_matrix());
+
+  curve_shader.bind();
+  curve_shader  //
       .set("camera.projection", cam.projection_matrix())
       .set("camera.view", cam.view_matrix())
       .set("camera.viewport", cam.viewport_matrix());

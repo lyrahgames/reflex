@@ -57,6 +57,7 @@ class viewer {
   shader_program shader{};
   shader_program selection_shader{};
   shader_program point_selection_shader{};
+  shader_program curve_shader{};
 
   // World Origin
   vec3 origin;

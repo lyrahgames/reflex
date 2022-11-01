@@ -57,17 +57,6 @@ struct vertex_array_handle : object_handle {
 
   static void unbind() noexcept { glBindVertexArray(0); }
 
-  // For proper member overloading, we would have to tag the type.
-  // But 'type_list' is already an empty tag type.
-  // So, it makes no sense to provide an extra overload for a single type.
-  //
-  // template <typename type>
-  // auto setup_aos() const noexcept -> binded_handle {
-  //   const auto self = bind();
-  //   detail::set_attribute_pointer<type>(0, sizeof(type), 0);
-  //   return self;
-  // }
-
   template <generic::static_layout_tuple tuple_type>
   auto setup_aos() const noexcept -> binded_handle {
     const auto self = bind();

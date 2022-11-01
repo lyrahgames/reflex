@@ -113,7 +113,7 @@ struct mesh : basic_mesh {
     // device_handle.bind();
     device_vertices.bind();
     device_handle.template setup_aos<vertex_data>();
-    // device_faces.bind();
+    device_faces.bind();
 
     // glEnableVertexAttribArray(position_attribute_location);
     // glVertexAttribPointer(position_attribute_location, 3, GL_FLOAT, GL_FALSE,
