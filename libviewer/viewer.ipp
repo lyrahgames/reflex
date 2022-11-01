@@ -294,6 +294,9 @@ void viewer::load_model(czstring file_path) {
   view_should_update = true;
 
   // cout << "edges = " << scene.meshes[0].edges.size() << endl;
+
+  cout << "vertices = " << scene.meshes[0].vertices.size() << endl
+       << "faces = " << scene.meshes[0].faces.size() << endl;
 }
 
 void viewer::load_shader(czstring path) {
@@ -441,23 +444,34 @@ void viewer::preprocess_curve() {
         {v[f[0]].position, v[f[1]].position, v[f[2]].position}, p.position);
     size_t vid = f[id];
 
+    // if (vid != curve.vertices.back()) {
+    //   if (curve.vertices.size() <= 1) {
+    //     curve.vertices.push_back(vid);
+    //     continue;
+    //   }
+
+    //   const auto a = curve.vertices[curve.vertices.size() - 1];
+    //   const auto b = curve.vertices[curve.vertices.size() - 2];
+
+    //   if (vid == b) continue;
+
+    //   if (/*m.edges.contains(pair{min(a, b), max(a, b)}) &&*/
+    //       m.edges.contains(pair{min(vid, a), max(vid, a)}) &&
+    //       m.edges.contains(pair{min(vid, b), max(vid, b)}))
+    //     curve.vertices.back() = vid;
+    //   else
+    //     curve.vertices.push_back(vid);
+    // }
+
     if (vid != curve.vertices.back()) {
-      if (curve.vertices.size() <= 1) {
-        curve.vertices.push_back(vid);
-        continue;
+      // curve.vertices.push_back(vid);
+      const auto path = m.compute_shortest_path(curve.vertices.back(), vid);
+      if (path.empty()) break;
+      for (auto x : path) {
+        cout << x << ", ";
+        curve.vertices.push_back(x);
       }
-
-      const auto a = curve.vertices[curve.vertices.size() - 1];
-      const auto b = curve.vertices[curve.vertices.size() - 2];
-
-      if (vid == b) continue;
-
-      if (/*m.edges.contains(pair{min(a, b), max(a, b)}) &&*/
-          m.edges.contains(pair{min(vid, a), max(vid, a)}) &&
-          m.edges.contains(pair{min(vid, b), max(vid, b)}))
-        curve.vertices.back() = vid;
-      else
-        curve.vertices.push_back(vid);
+      cout << endl;
     }
   }
 

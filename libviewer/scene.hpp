@@ -90,6 +90,90 @@ struct basic_mesh {
     }
   }
 
+  void compute_neighbors() {
+    neighbor_offset.resize(vertices.size() + 1);
+    neighbor_offset[0] = 0;
+
+    for (const auto& [e, _] : edges) {
+      ++neighbor_offset[e.first + 1];
+      ++neighbor_offset[e.second + 1];
+    }
+
+    for (size_t i = 2; i <= vertices.size(); ++i)
+      neighbor_offset[i] += neighbor_offset[i - 1];
+
+    vector<size_t> neighbor_count(vertices.size(), 0);
+    neighbors.resize(neighbor_offset.back());
+
+    for (const auto& [e, _] : edges) {
+      neighbors[neighbor_offset[e.first] + neighbor_count[e.first]++] =
+          e.second;
+      neighbors[neighbor_offset[e.second] + neighbor_count[e.second]++] =
+          e.first;
+    }
+
+    for (size_t i = 0; i < vertices.size(); ++i) {
+      assert(neighbor_count[i] == neighbor_offset[i + 1] - neighbor_offset[i]);
+      // cout << i << ": " << neighbor_offset[i + 1] - neighbor_offset[i] << ": ";
+      // for (size_t j = neighbor_offset[i]; j < neighbor_offset[i + 1]; ++j)
+      //   cout << neighbors[j] << ", ";
+      // cout << endl;
+    }
+  }
+
+  auto distance(size_t x, size_t y) const noexcept -> float {
+    return glm::distance(vertices[x].position, vertices[y].position);
+  }
+
+  auto compute_shortest_path(size_t src_vid, size_t dst_vid) const
+      -> vector<size_t> {
+    vector<bool> visited(vertices.size(), false);
+    vector<float> distances(vertices.size(), INFINITY);
+    vector<size_t> previous(vertices.size());
+    vector<size_t> count(vertices.size());
+    distances[src_vid] = 0;
+    previous[src_vid] = src_vid;
+    count[src_vid] = 0;
+
+    size_t current = src_vid;
+    float min_distance = INFINITY;
+
+    do {
+      for (size_t i = neighbor_offset[current];  //
+           i < neighbor_offset[current + 1]; ++i) {
+        const auto neighbor = neighbors[i];
+        if (visited[neighbor]) continue;
+        const auto d = distance(current, neighbor) + distances[current];
+        if (d >= distances[neighbor]) continue;
+        distances[neighbor] = d;
+        previous[neighbor] = current;
+        count[neighbor] = count[current] + 1;
+      }
+      visited[current] = true;
+
+      min_distance = INFINITY;
+      for (size_t i = 0; i < vertices.size(); ++i) {
+        if (visited[i]) continue;
+        if (distances[i] >= min_distance) continue;
+        min_distance = distances[i];
+        current = i;
+      }
+
+    } while (!visited[dst_vid] && (min_distance < INFINITY));
+
+    if (min_distance == INFINITY) return {};
+
+    // Backtrack the path.
+    vector<size_t> path(count[dst_vid]);
+    current = dst_vid;
+    size_t index = path.size() - 1;
+    do {
+      path[index--] = current;
+      current = previous[current];
+    } while (current != src_vid);
+    return path;
+  }
+
   vector<vertex> vertices{};
   vector<face> faces{};
   int material_id = -1;
@@ -270,6 +354,7 @@ struct scene {
     for (auto& mesh : meshes) {
       mesh.update();
       mesh.compute_edges();
+      mesh.compute_neighbors();
     }
   }
 

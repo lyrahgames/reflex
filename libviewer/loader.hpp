@@ -86,8 +86,9 @@ struct loader {
     cout << path << endl << directory << endl;
 
     Assimp::Importer importer{};
-    const auto post_processing =
-        aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenSmoothNormals;
+    const auto post_processing = aiProcess_Triangulate | aiProcess_FlipUVs |
+                                 aiProcess_GenSmoothNormals |
+                                 aiProcess_JoinIdenticalVertices;
     // | aiProcess_FlipUVs | aiProcess_GenNormals | aiProcess_GenSmoothNormals;
     const auto raw = importer.ReadFile(file_path, post_processing);
 
