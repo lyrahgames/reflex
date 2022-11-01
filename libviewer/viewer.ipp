@@ -108,6 +108,9 @@ void viewer::render() {
   glDepthFunc(GL_LESS);
   scene.render(shader);
 
+  curve_shader.bind();
+  scene.render_boundaries();
+
   glDepthFunc(GL_ALWAYS);
   scene.render(selection_shader, selection);
 

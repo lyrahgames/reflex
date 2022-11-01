@@ -178,10 +178,11 @@ struct basic_mesh {
   vector<face> faces{};
   int material_id = -1;
 
-  unordered_map<pair<size_t, size_t>, int, decltype([](const auto& x) {
-                  return (x.first << 7) ^ x.second;
-                })>
-      edges{};
+  // unordered_map<pair<size_t, size_t>, int, decltype([](const auto& x) {
+  //                 return (x.first << 7) ^ x.second;
+  //               })>
+  //     edges{};
+  map<pair<size_t, size_t>, int> edges{};
   vector<size_t> neighbor_offset{};
   vector<size_t> neighbors{};
 };
@@ -268,6 +269,37 @@ struct points {
   vertex_buffer device_vertices{};
 };
 
+struct lines {
+  lines() noexcept { setup(); }
+
+  void setup() const noexcept {
+    device_handle.bind();
+    device_vertices.bind();
+    // device_lines.bind();
+
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vec3), nullptr);
+  }
+
+  void update() const noexcept {
+    device_vertices.allocate_and_initialize(vertices);
+    // device_faces.allocate_and_initialize(lines);
+  }
+
+  void render() const noexcept {
+    device_handle.bind();
+    // glDrawElements(GL_LINES, 2 * lines.size(), GL_UNSIGNED_INT, 0);
+    glDrawArrays(GL_LINES, 0, vertices.size());
+  }
+
+  vector<vec3> vertices{};
+  // vector<array<uint32_t, 2>> lines{};
+
+  vertex_array device_handle;
+  vertex_buffer device_vertices;
+  element_buffer device_lines;
+};
+
 // struct marked_triangle {
 //   marked_triangle(const mesh& m, size_t face_id) noexcept : mesh_ref{m} {
 //     device_handle.bind();
@@ -351,10 +383,21 @@ struct scene {
       textures.emplace(material.texture_path, move(texture));
     }
 
-    for (auto& mesh : meshes) {
+    boundaries.resize(meshes.size());
+    for (size_t i = 0; i < meshes.size(); ++i) {
+      auto& mesh = meshes[i];
       mesh.update();
       mesh.compute_edges();
       mesh.compute_neighbors();
+
+      auto& boundary = boundaries[i];
+      for (const auto& [e, triangles] : mesh.edges) {
+        if (triangles != 1) continue;
+        const auto [p, q] = e;
+        boundary.vertices.push_back(mesh.vertices[p].position);
+        boundary.vertices.push_back(mesh.vertices[q].position);
+      }
+      boundary.update();
     }
   }
 
@@ -378,6 +421,10 @@ struct scene {
       materials[mesh.material_id].bind(shader);
       mesh.render();
     }
+  }
+
+  void render_boundaries() const noexcept {
+    for (const auto& boundary : boundaries) boundary.render();
   }
 
   void animate(float dt) noexcept {
@@ -405,6 +452,7 @@ struct scene {
   }
 
   vector<mesh> meshes{};
+  vector<lines> boundaries{};
   vector<material> materials{};
   unordered_map<string, texture2> textures{};
   mat4 model_matrix{1.0f};
