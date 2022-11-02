@@ -468,7 +468,9 @@ void viewer::preprocess_curve() {
 
     if (vid != curve.vertices.back()) {
       // curve.vertices.push_back(vid);
-      const auto path = m.compute_shortest_path(curve.vertices.back(), vid);
+      const auto path =
+          m.compute_shortest_path_fast(curve.vertices.back(), vid);
+      // cout << "shortest path computed" << endl;
       if (path.empty()) break;
       for (auto x : path) {
         cout << x << ", ";

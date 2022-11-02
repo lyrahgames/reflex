@@ -174,6 +174,57 @@ struct basic_mesh {
     return path;
   }
 
+  auto compute_shortest_path_fast(size_t src, size_t dst) const
+      -> vector<size_t> {
+    vector<bool> visited(vertices.size(), false);
+
+    vector<float> distances(vertices.size(), INFINITY);
+    distances[src] = 0;
+
+    vector<size_t> previous(vertices.size());
+    previous[src] = src;
+
+    vector<size_t> queue{src};
+    const auto order = [&](size_t i, size_t j) {
+      return distances[i] > distances[j];
+    };
+
+    do {
+      ranges::make_heap(queue, order);
+      ranges::pop_heap(queue, order);
+      const auto current = queue.back();
+      queue.pop_back();
+
+      // cout << "current = " << current << endl;
+
+      visited[current] = true;
+
+      for (auto i = neighbor_offset[current];  //
+           i < neighbor_offset[current + 1]; ++i) {
+        const auto neighbor = neighbors[i];
+        if (visited[neighbor]) continue;
+
+        const auto d = distance(current, neighbor) + distances[current];
+        if (d >= distances[neighbor]) continue;
+
+        distances[neighbor] = d;
+        previous[neighbor] = current;
+        queue.push_back(neighbor);
+      }
+    } while (!queue.empty() && !visited[dst]);
+
+    if (queue.empty()) return {};
+
+    // cout << "dst visited" << endl;
+
+    // Compute count and path.
+    size_t count = 0;
+    for (auto i = dst; i != src; i = previous[i]) ++count;
+    vector<size_t> path(count);
+    for (auto i = dst; i != src; i = previous[i]) path[--count] = i;
+    return path;
+  }
+
   vector<vertex> vertices{};
   vector<face> faces{};
   int material_id = -1;
