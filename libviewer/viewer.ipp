@@ -414,7 +414,48 @@ void viewer::select_vertex(float x, float y) {
   point_selection.vertices.push_back(position);
   point_selection.update();
 
-  cout << "curve point count = " << curve_points.size() << endl;
+  // cout << "curve point count = " << curve_points.size() << endl;
+}
+
+void viewer::check_curve_consistency() {
+  const auto& mesh = scene.meshes[curve.mesh_id];
+  const auto& vertices = curve.vertices;
+
+  if (vertices.size() < 2) {
+    cout << "Curve Consistency Check Failed: Curve contains too few points."
+         << endl;
+    return;
+  }
+
+  for (auto v : vertices) {
+    if (v < mesh.vertices.size()) continue;
+    cout << "Curve Consistency Check Failed: Curve contains invalid vertex IDs."
+         << endl;
+    return;
+  }
+
+  for (size_t i = 1; i < vertices.size(); ++i) {
+    auto a = vertices[i];
+    auto b = vertices[i - 1];
+    if (mesh.edges.contains(pair(min(a, b), max(a, b)))) continue;
+    cout << "Curve Consistency Check Failed: Curve contains adjacent point "
+            "that are no neighbors."
+         << endl;
+    return;
+  }
+
+  for (size_t i = 2; i < vertices.size(); ++i) {
+    auto a = vertices[i];
+    auto b = vertices[i - 2];
+    if ((a != b) && (!mesh.edges.contains(pair(min(a, b), max(a, b)))))
+      continue;
+    cout << "Curve Consistency Check Failed: Curve contains three adjacent "
+            "point that are on the same triangle."
+         << endl;
+    return;
+  }
+
+  cout << "Curve Consistency Check Succeeded" << endl;
 }
 
 void viewer::preprocess_curve() {
@@ -447,40 +488,49 @@ void viewer::preprocess_curve() {
         {v[f[0]].position, v[f[1]].position, v[f[2]].position}, p.position);
     size_t vid = f[id];
 
-    // if (vid != curve.vertices.back()) {
-    //   if (curve.vertices.size() <= 1) {
-    //     curve.vertices.push_back(vid);
-    //     continue;
-    //   }
-
-    //   const auto a = curve.vertices[curve.vertices.size() - 1];
-    //   const auto b = curve.vertices[curve.vertices.size() - 2];
-
-    //   if (vid == b) continue;
-
-    //   if (/*m.edges.contains(pair{min(a, b), max(a, b)}) &&*/
-    //       m.edges.contains(pair{min(vid, a), max(vid, a)}) &&
-    //       m.edges.contains(pair{min(vid, b), max(vid, b)}))
-    //     curve.vertices.back() = vid;
-    //   else
-    //     curve.vertices.push_back(vid);
-    // }
-
-    if (vid != curve.vertices.back()) {
-      // curve.vertices.push_back(vid);
-      const auto path =
-          m.compute_shortest_path_fast(curve.vertices.back(), vid);
-      // cout << "shortest path computed" << endl;
+    const auto a = curve.vertices.back();
+    if (vid != a) {
+      const auto path = m.compute_shortest_path_fast(a, vid);
+      // If there is no path then no connection exists.
       if (path.empty()) break;
-      for (auto x : path) {
-        cout << x << ", ";
-        curve.vertices.push_back(x);
-      }
-      cout << endl;
+      for (auto x : path) curve.vertices.push_back(x);
     }
   }
 
-  cout << "curve size = " << curve.vertices.size() << endl;
+  // Remove artifacts.
+  {
+    size_t curve_size = 2;  // First two points are always ok.
+    for (size_t i = 2; i < curve.vertices.size(); ++i) {
+      const auto vid = curve.vertices[i];
+      // There always has to be one point in the curve.
+      const auto a = curve.vertices[curve_size - 1];
+      if (vid == a) continue;
+      if (curve_size < 2) {
+        curve.vertices[curve_size++] = vid;
+        continue;
+      }
+      // By construction, a and b are not equal.
+      const auto b = curve.vertices[curve_size - 2];
+      if (vid == b) {
+        // Remove last point. This could make the curve consist only of one point.
+        --curve_size;
+        continue;
+      }
+      // At this point, a must be a neighbor of vid and b by construction.
+      if (m.edges.contains(pair{min(b, vid), max(b, vid)})) {
+        // All points lie on triangle. Remove middle point.
+        --curve_size;
+        --i;
+        continue;
+      }
+      curve.vertices[curve_size++] = vid;
+    }
+    curve.vertices.resize(curve_size);
+  }
+
+  // cout << "curve size = " << curve.vertices.size() << endl;
+
+  check_curve_consistency();
 
   point_selection.vertices.clear();
   for (auto vid : curve.vertices) {

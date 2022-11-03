@@ -48,6 +48,7 @@ class viewer {
   void select_vertex(float x, float y);
 
   void preprocess_curve();
+  void check_curve_consistency();
 
  private:
   bool running_ = false;
