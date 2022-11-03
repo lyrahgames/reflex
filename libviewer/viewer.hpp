@@ -49,6 +49,7 @@ class viewer {
 
   void preprocess_curve();
   void check_curve_consistency();
+  void compute_curve_curvature();
 
  private:
   bool running_ = false;

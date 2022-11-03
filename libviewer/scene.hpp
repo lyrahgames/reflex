@@ -294,18 +294,83 @@ struct mesh : basic_mesh {
 };
 
 struct points {
+  struct vertex {
+    vec3 position;
+    vec3 normal;
+    float arclength;
+    float curvature;
+  };
+
   points() noexcept { setup(); };
 
   void setup() {
     device_handle.bind();
     device_vertices.bind();
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vec3), nullptr);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vertex),
+                          (void*)offsetof(vertex, position));
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(vertex),
+                          (void*)offsetof(vertex, normal));
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, sizeof(vertex),
+                          (void*)offsetof(vertex, arclength));
+    glEnableVertexAttribArray(3);
+    glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(vertex),
+                          (void*)offsetof(vertex, curvature));
+  }
+
+  void compute_length() {
+    if (vertices.size() < 2) return;
+    vertices[0].arclength = 0;
+
+    for (size_t i = 1; i < vertices.size(); ++i)
+      vertices[i].arclength =
+          vertices[i - 1].arclength +
+          distance(vertices[i - 1].position, vertices[i].position);
+
+    for (size_t i = 1; i < vertices.size(); ++i)
+      vertices[i].arclength /= vertices.back().arclength;
+  }
+
+  void compute_curvature() {
+    if (vertices.size() < 3) return;
+
+    float max_curvature = 0;
+
+    for (size_t i = 1; i < vertices.size() - 1; ++i) {
+      const auto& p = vertices[i].position;
+      const auto& n = vertices[i].normal;
+
+      const auto& a = vertices[i - 1].position;
+      const auto& b = vertices[i + 1].position;
+
+      const auto ap = p - a;
+      const auto pb = b - p;
+
+      const auto lap = 1.0f / length(ap);
+      const auto lpb = 1.0f / length(pb);
+
+      const auto u = lap * ap;
+      const auto v = lpb * pb;
+
+      const auto d = (u + v) / 2.0f;
+      const auto d2 = (lpb * (v + u) + lap * (v - u)) / 2.0f;
+
+      const auto k = glm::dot(d2, cross(n, d));
+      max_curvature = max(abs(k), max_curvature);
+      vertices[i].curvature = k;
+    }
+
+    for (size_t i = 1; i < vertices.size() - 1; ++i)
+      vertices[i].curvature /= max_curvature;
   }
 
   void update() {
+    compute_length();
+    compute_curvature();
     device_vertices.bind();
-    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(vec3),
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(vertex),
                  vertices.data(), GL_STATIC_DRAW);
   }
 
@@ -315,7 +380,7 @@ struct points {
     glDrawArrays(GL_POINTS, 0, vertices.size());
   }
 
-  vector<vec3> vertices{};
+  vector<vertex> vertices{};
   vertex_array device_handle{};
   vertex_buffer device_vertices{};
 };
@@ -345,6 +410,7 @@ struct lines {
 
   vector<vec3> vertices{};
   // vector<array<uint32_t, 2>> lines{};
+  vector<float> curvature{};
 
   vertex_array device_handle;
   vertex_buffer device_vertices;

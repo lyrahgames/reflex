@@ -27,7 +27,7 @@ viewer::viewer(int w, int h) : screen_width(w), screen_height(h) {
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   glClearColor(0.2, 0.2, 0.2, 1.0);
   glPointSize(10.0f);
-  glLineWidth(2.5f);
+  glLineWidth(5.0f);
 
   shader = default_shader();
   selection_shader = wireframe_shader();
@@ -411,7 +411,7 @@ void viewer::select_vertex(float x, float y) {
 
   curve_points.push_back({p.mesh_id, p.face_id, p.u, p.v, position});
 
-  point_selection.vertices.push_back(position);
+  point_selection.vertices.push_back({position});
   point_selection.update();
 
   // cout << "curve point count = " << curve_points.size() << endl;
@@ -536,9 +536,11 @@ void viewer::preprocess_curve() {
   for (auto vid : curve.vertices) {
     const auto& m = scene.meshes[curve.mesh_id];
     const auto& v = m.vertices;
-    point_selection.vertices.push_back(v[vid].position);
+    point_selection.vertices.push_back({v[vid].position, v[vid].normal, 0, 0});
   }
   point_selection.update();
 }
+
+void viewer::compute_curve_curvature() {}
 
 }  // namespace viewer
