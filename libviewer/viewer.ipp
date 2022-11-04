@@ -27,7 +27,7 @@ viewer::viewer(int w, int h) : screen_width(w), screen_height(h) {
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   glClearColor(0.2, 0.2, 0.2, 1.0);
   glPointSize(10.0f);
-  glLineWidth(5.0f);
+  glLineWidth(4.0f);
 
   shader = default_shader();
   selection_shader = wireframe_shader();
@@ -498,6 +498,8 @@ void viewer::preprocess_curve() {
   }
 
   // Remove artifacts.
+  // has to be done after path generation because start or end connection
+  // to dijkstra path may not fulfill consistency requirement.
   {
     size_t curve_size = 2;  // First two points are always ok.
     for (size_t i = 2; i < curve.vertices.size(); ++i) {
@@ -538,6 +540,115 @@ void viewer::preprocess_curve() {
     const auto& v = m.vertices;
     point_selection.vertices.push_back({v[vid].position, v[vid].normal, 0, 0});
   }
+  point_selection.update();
+}
+
+void viewer::preprocess_face_curve() {
+  if (curve_points.empty()) return;
+
+  face_curve.faces.clear();
+  const auto& p = curve_points[0];
+  face_curve.mesh_id = p.mesh_id;
+
+  face_curve.faces.push_back(p.face_id);
+
+  const auto& m = scene.meshes[p.mesh_id];
+
+  for (size_t i = 1; i < curve_points.size(); ++i) {
+    const auto& p = curve_points[i];
+    if (p.mesh_id != face_curve.mesh_id) break;
+    const auto fid = p.face_id;
+
+    const auto a = face_curve.faces.back();
+    if (fid == a) continue;
+    // face_curve.faces.push_back(fid);
+
+    const auto path = m.compute_shortest_face_path_fast(a, fid);
+    // If there is no path then no connection exists.
+    if (path.empty()) break;
+    for (auto x : path) face_curve.faces.push_back(x);
+  }
+
+  // Remove artifacts
+  {
+    size_t curve_size = 2;
+    for (size_t i = 2; i < face_curve.faces.size(); ++i) {
+      const auto fid = face_curve.faces[i];
+      // There always has to be one point in the face_curve.
+      const auto a = face_curve.faces[curve_size - 1];
+      if (fid == a) continue;
+      if (curve_size < 2) {
+        face_curve.faces[curve_size++] = fid;
+        continue;
+      }
+      // By construction, a and b are not equal.
+      const auto b = face_curve.faces[curve_size - 2];
+      if (fid == b) {
+        // Remove last point.
+        // This could make the face_curve consist only of one point.
+        --curve_size;
+        continue;
+      }
+      // At this point, a must be a neighbor of fid and b by construction.
+      face_curve.faces[curve_size++] = fid;
+    }
+    face_curve.faces.resize(curve_size);
+  }
+
+  if (face_curve.faces.size() < 2) return;
+
+  // Generate points
+  point_selection.vertices.clear();
+  {
+    const auto a = face_curve.faces[0];
+    const auto b = face_curve.faces[1];
+    size_t i = 0;
+    for (; i < 3; ++i)
+      if (m.face_neighbors[a][i] == b) break;
+    const auto& vertex = m.vertices[m.faces[a][i]];
+    point_selection.vertices.push_back({vertex.position, vertex.normal});
+  }
+  for (size_t i = 1; i < face_curve.faces.size(); ++i) {
+    const auto a = face_curve.faces[i - 1];
+    const auto b = face_curve.faces[i];
+    size_t k = 0;
+    for (; k < 3; ++k)
+      if (m.face_neighbors[b][k] == a) break;
+    // size_t l = 0;
+    // for (; l < 3; ++l)
+    //   if (m.face_neighbors[a][l] == b) break;
+    // if (pair(min(m.faces[b][(k + 1) % 3], m.faces[b][(k + 2) % 3]),
+    //          max(m.faces[b][(k + 1) % 3], m.faces[b][(k + 2) % 3])) !=
+    //     pair(min(m.faces[a][(l + 1) % 3], m.faces[a][(l + 2) % 3]),
+    //          max(m.faces[a][(l + 1) % 3], m.faces[a][(l + 2) % 3])))
+    //   cout << "fucking error!!" << endl;
+    const auto position = (m.vertices[m.faces[b][(k + 1) % 3]].position +
+                           m.vertices[m.faces[b][(k + 2) % 3]].position) /
+                          2.0f;
+    const auto normal = normalize((m.vertices[m.faces[b][(k + 1) % 3]].normal +
+                                   m.vertices[m.faces[b][(k + 2) % 3]].normal) /
+                                  2.0f);
+    point_selection.vertices.push_back({position, normal});
+  }
+  {
+    const auto a = face_curve.faces[face_curve.faces.size() - 2];
+    const auto b = face_curve.faces[face_curve.faces.size() - 1];
+    size_t i = 0;
+    for (; i < 3; ++i)
+      if (m.face_neighbors[b][i] == a) break;
+    const auto& vertex = m.vertices[m.faces[a][i]];
+    point_selection.vertices.push_back({vertex.position, vertex.normal});
+  }
+
+  // for (auto fid : face_curve.faces) {
+  //   const auto& f = mesh.faces[fid];
+  //   const auto& v = mesh.vertices;
+
+  //   const auto position =
+  //       (v[f[0]].position + v[f[1]].position + v[f[2]].position) / 3.0f;
+
+  //   point_selection.vertices.push_back({position});
+  // }
   point_selection.update();
 }
 

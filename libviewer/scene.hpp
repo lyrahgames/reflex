@@ -54,6 +54,34 @@ struct face : array<uint32_t, 3> {};
 // using face = array<uint32_t, 3>;
 
 struct basic_mesh {
+  struct edge_info {
+    edge_info() {
+      face_id[0] = size_t(-1);
+      face_id[1] = size_t(-1);
+    }
+
+    void add_face(size_t fid, uint32 id) {
+      if (face_id[0] == size_t(-1)) {
+        face_id[0] = fid;
+        location[0] = id;
+        return;
+      }
+
+      face_id[1] = fid;
+      location[1] = id;
+    }
+
+    bool inside() const noexcept { return face_id[1] != size_t(-1); }
+
+    size_t face_id[2];
+    uint32 location[2];
+  };
+
+  struct dual_info {
+    size_t edge[2];
+    size_t vid[2];
+  };
+
   struct intersection : viewer::intersection {
     operator bool() const noexcept { return face_id != -1; }
     size_t face_id = -1;
@@ -83,11 +111,20 @@ struct basic_mesh {
 
   void compute_edges() {
     edges.clear();
-    for (const auto& f : faces) {
-      ++edges[pair{min(f[0], f[1]), max(f[0], f[1])}];
-      ++edges[pair{min(f[1], f[2]), max(f[1], f[2])}];
-      ++edges[pair{min(f[2], f[0]), max(f[2], f[0])}];
+    for (size_t i = 0; i < faces.size(); ++i) {
+      const auto& f = faces[i];
+      edges[pair{min(f[0], f[1]), max(f[0], f[1])}].add_face(i, 2);
+      edges[pair{min(f[1], f[2]), max(f[1], f[2])}].add_face(i, 0);
+      edges[pair{min(f[2], f[0]), max(f[2], f[0])}].add_face(i, 1);
     }
+
+    // for (const auto& [e, info] : edges) {
+    //   if (!info.inside()) continue;
+    //   auto& d = dual_edges[pair{min(info.face_id[0], info.face_id[1]),
+    //                             max(info.face_id[0], info.face_id[1])}];
+    //   d.edge = {e.first, e.second};
+    //   d.vid = {};
+    // }
   }
 
   void compute_neighbors() {
@@ -112,12 +149,41 @@ struct basic_mesh {
           e.first;
     }
 
-    for (size_t i = 0; i < vertices.size(); ++i) {
-      assert(neighbor_count[i] == neighbor_offset[i + 1] - neighbor_offset[i]);
-      // cout << i << ": " << neighbor_offset[i + 1] - neighbor_offset[i] << ": ";
-      // for (size_t j = neighbor_offset[i]; j < neighbor_offset[i + 1]; ++j)
-      //   cout << neighbors[j] << ", ";
-      // cout << endl;
+    // for (size_t i = 0; i < vertices.size(); ++i) {
+    //   assert(neighbor_count[i] == neighbor_offset[i + 1] - neighbor_offset[i]);
+    // cout << i << ": " << neighbor_offset[i + 1] - neighbor_offset[i] << ": ";
+    // for (size_t j = neighbor_offset[i]; j < neighbor_offset[i + 1]; ++j)
+    //   cout << neighbors[j] << ", ";
+    // cout << endl;
+    // }
+
+    face_neighbors.resize(faces.size());
+    for (const auto& [e, info] : edges) {
+      assert(info.face_id[0] < faces.size());
+
+      face_neighbors[info.face_id[0]][info.location[0]] = info.face_id[1];
+      if (!info.inside()) continue;
+      face_neighbors[info.face_id[1]][info.location[1]] = info.face_id[0];
+
+      assert(faces[info.face_id[0]][info.location[0]] != e.first);
+      assert(faces[info.face_id[0]][info.location[0]] != e.second);
+
+      assert(min(faces[info.face_id[0]][(info.location[0] + 1) % 3],
+                 faces[info.face_id[0]][(info.location[0] + 2) % 3]) ==
+             e.first);
+      assert(max(faces[info.face_id[0]][(info.location[0] + 1) % 3],
+                 faces[info.face_id[0]][(info.location[0] + 2) % 3]) ==
+             e.second);
+
+      assert(faces[info.face_id[1]][info.location[1]] != e.first);
+      assert(faces[info.face_id[1]][info.location[1]] != e.second);
+
+      assert(min(faces[info.face_id[1]][(info.location[1] + 1) % 3],
+                 faces[info.face_id[1]][(info.location[1] + 2) % 3]) ==
+             e.first);
+      assert(max(faces[info.face_id[1]][(info.location[1] + 1) % 3],
+                 faces[info.face_id[1]][(info.location[1] + 2) % 3]) ==
+             e.second);
     }
   }
 
@@ -225,17 +291,79 @@ struct basic_mesh {
     return path;
   }
 
+  auto compute_shortest_face_path_fast(size_t src, size_t dst) const
+      -> vector<size_t> {
+    const auto barycenter = [&](size_t fid) {
+      const auto& f = faces[fid];
+      return (vertices[f[0]].position + vertices[f[1]].position +
+              vertices[f[2]].position) /
+             3.0f;
+    };
+    const auto face_distance = [&](size_t i, size_t j) {
+      return glm::distance(barycenter(i), barycenter(j));
+    };
+
+    vector<bool> visited(faces.size(), false);
+
+    vector<float> distances(faces.size(), INFINITY);
+    distances[src] = 0;
+
+    vector<size_t> previous(faces.size());
+    previous[src] = src;
+
+    vector<size_t> queue{src};
+    const auto order = [&](size_t i, size_t j) {
+      return distances[i] > distances[j];
+    };
+
+    do {
+      ranges::make_heap(queue, order);
+      ranges::pop_heap(queue, order);
+      const auto current = queue.back();
+      queue.pop_back();
+
+      // cout << "current = " << current << endl;
+
+      visited[current] = true;
+
+      const auto neighbor_faces = face_neighbors[current];
+      for (size_t i = 0; i < 3; ++i) {
+        const auto neighbor = neighbor_faces[i];
+        if (visited[neighbor]) continue;
+
+        const auto d = face_distance(current, neighbor) + distances[current];
+        if (d >= distances[neighbor]) continue;
+
+        distances[neighbor] = d;
+        previous[neighbor] = current;
+        queue.push_back(neighbor);
+      }
+    } while (!queue.empty() && !visited[dst]);
+
+    if (queue.empty()) return {};
+
+    // Compute count and path.
+    size_t count = 0;
+    for (auto i = dst; i != src; i = previous[i]) ++count;
+    vector<size_t> path(count);
+    for (auto i = dst; i != src; i = previous[i]) path[--count] = i;
+    return path;
+  }
+
   vector<vertex> vertices{};
   vector<face> faces{};
   int material_id = -1;
 
-  // unordered_map<pair<size_t, size_t>, int, decltype([](const auto& x) {
-  //                 return (x.first << 7) ^ x.second;
-  //               })>
-  //     edges{};
-  map<pair<size_t, size_t>, int> edges{};
+  static constexpr auto pair_hasher = [](const auto& x) {
+    return (x.first << 7) ^ x.second;
+  };
+  unordered_map<pair<size_t, size_t>, edge_info, decltype(pair_hasher)> edges{};
+  unordered_map<pair<size_t, size_t>, dual_info, decltype(pair_hasher)>
+      dual_edges{};
+  // map<pair<size_t, size_t>, int> edges{};
   vector<size_t> neighbor_offset{};
   vector<size_t> neighbors{};
+  vector<array<size_t, 3>> face_neighbors{};
 };
 
 struct mesh : basic_mesh {
@@ -508,8 +636,8 @@ struct scene {
       mesh.compute_neighbors();
 
       auto& boundary = boundaries[i];
-      for (const auto& [e, triangles] : mesh.edges) {
-        if (triangles != 1) continue;
+      for (const auto& [e, info] : mesh.edges) {
+        if (info.inside()) continue;
         const auto [p, q] = e;
         boundary.vertices.push_back(mesh.vertices[p].position);
         boundary.vertices.push_back(mesh.vertices[q].position);

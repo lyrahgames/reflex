@@ -77,6 +77,7 @@ int main(int argc, char* argv[]) {
   viewer.start();
 
   bool drawing = false;
+  bool primitive_drawing = false;
 
   auto old_mouse_pos = sf::Mouse::getPosition(window);
   while (viewer.running()) {
@@ -100,6 +101,10 @@ int main(int argc, char* argv[]) {
             // viewer.select_vertex(old_mouse_pos.x, old_mouse_pos.y);
             drawing = !drawing;
             break;
+          case sf::Keyboard::T:
+            // primitive_drawing = !primitive_drawing;
+            viewer.preprocess_face_curve();
+            break;
         }
       }
     }
@@ -118,6 +123,9 @@ int main(int argc, char* argv[]) {
       // if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space))
       if (drawing && (mouse_move != sf::Vector2i{}))
         viewer.select_vertex(old_mouse_pos.x, old_mouse_pos.y);
+
+      if (primitive_drawing && (mouse_move != sf::Vector2i{}))
+        viewer.select_face(old_mouse_pos.x, old_mouse_pos.y);
     }
 
     viewer.update();

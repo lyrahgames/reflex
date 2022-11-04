@@ -48,6 +48,7 @@ class viewer {
   void select_vertex(float x, float y);
 
   void preprocess_curve();
+  void preprocess_face_curve();
   void check_curve_consistency();
   void compute_curve_curvature();
 
@@ -94,6 +95,12 @@ class viewer {
     vector<size_t> vertices{};
   };
   mesh_curve curve{};
+
+  struct mesh_face_curve {
+    size_t mesh_id;
+    vector<size_t> faces{};
+  };
+  mesh_face_curve face_curve{};
 
   vec3 aabb_min{};
   vec3 aabb_max{};
