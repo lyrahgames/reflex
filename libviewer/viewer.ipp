@@ -599,14 +599,18 @@ void viewer::preprocess_face_curve() {
 
   // Generate points
   point_selection.vertices.clear();
+  smooth_curve.mesh_id = face_curve.mesh_id;
+  smooth_curve.vertices.clear();
   {
     const auto a = face_curve.faces[0];
     const auto b = face_curve.faces[1];
     size_t i = 0;
     for (; i < 3; ++i)
       if (m.face_neighbors[a][i] == b) break;
-    const auto& vertex = m.vertices[m.faces[a][i]];
+    const auto vid = m.faces[a][i];
+    const auto& vertex = m.vertices[vid];
     point_selection.vertices.push_back({vertex.position, vertex.normal});
+    smooth_curve.vertices.push_back({{vid, vid}, vertex.position, 0.0f});
   }
   for (size_t i = 1; i < face_curve.faces.size(); ++i) {
     const auto a = face_curve.faces[i - 1];
@@ -622,13 +626,14 @@ void viewer::preprocess_face_curve() {
     //     pair(min(m.faces[a][(l + 1) % 3], m.faces[a][(l + 2) % 3]),
     //          max(m.faces[a][(l + 1) % 3], m.faces[a][(l + 2) % 3])))
     //   cout << "fucking error!!" << endl;
-    const auto position = (m.vertices[m.faces[b][(k + 1) % 3]].position +
-                           m.vertices[m.faces[b][(k + 2) % 3]].position) /
-                          2.0f;
-    const auto normal = normalize((m.vertices[m.faces[b][(k + 1) % 3]].normal +
-                                   m.vertices[m.faces[b][(k + 2) % 3]].normal) /
-                                  2.0f);
+    const auto vid1 = m.faces[b][(k + 1) % 3];
+    const auto vid2 = m.faces[b][(k + 2) % 3];
+    const auto position =
+        (m.vertices[vid1].position + m.vertices[vid2].position) / 2.0f;
+    const auto normal =
+        normalize((m.vertices[vid1].normal + m.vertices[vid2].normal) / 2.0f);
     point_selection.vertices.push_back({position, normal});
+    smooth_curve.vertices.push_back({{vid1, vid2}, position, 0.5f});
   }
   {
     const auto a = face_curve.faces[face_curve.faces.size() - 2];
@@ -636,8 +641,10 @@ void viewer::preprocess_face_curve() {
     size_t i = 0;
     for (; i < 3; ++i)
       if (m.face_neighbors[b][i] == a) break;
-    const auto& vertex = m.vertices[m.faces[a][i]];
+    const auto vid = m.faces[a][i];
+    const auto& vertex = m.vertices[vid];
     point_selection.vertices.push_back({vertex.position, vertex.normal});
+    smooth_curve.vertices.push_back({{vid, vid}, vertex.position, 0.0f});
   }
 
   // for (auto fid : face_curve.faces) {
@@ -649,6 +656,56 @@ void viewer::preprocess_face_curve() {
 
   //   point_selection.vertices.push_back({position});
   // }
+  point_selection.update();
+}
+
+void viewer::smooth_initial_curve() {
+  if (smooth_curve.vertices.size() <= 2) return;
+
+  const auto& mesh = scene.meshes[smooth_curve.mesh_id];
+
+  auto vertices = smooth_curve.vertices;
+  for (size_t i = 1; i < vertices.size() - 1; ++i) {
+    const auto& x = vertices[i];
+    const auto vid1 = x.edge[0];
+    const auto vid2 = x.edge[1];
+    if (vid1 == vid2) continue;
+    const auto& prev = vertices[i - 1].position;
+    const auto& next = vertices[i + 1].position;
+    const auto& v1 = mesh.vertices[vid1].position;
+    const auto& v2 = mesh.vertices[vid2].position;
+
+    const auto u = v2 - v1;
+    const auto u2 = dot(u, u);
+    const auto t1 = dot(u, prev - v1) / u2;
+    const auto t2 = dot(u, next - v1) / u2;
+
+    const auto p1 = t1 * u + v1;
+    const auto p2 = t2 * u + v1;
+
+    const auto d1 = length(prev - p1);
+    const auto d2 = length(next - p2);
+    const auto w = 1.0f / (d1 + d2);
+    const auto w1 = w * d2;
+    const auto w2 = w * d1;
+
+    const auto t = clamp(w1 * t1 + w2 * t2, 0.0f, 1.0f);
+    const auto p = t * u + v1;
+
+    smooth_curve.vertices[i].position = p;
+    smooth_curve.vertices[i].t = t;
+  }
+
+  // Generate points
+  point_selection.vertices.clear();
+  for (auto& v : smooth_curve.vertices) {
+    const auto vid1 = v.edge[0];
+    const auto vid2 = v.edge[1];
+    const auto n1 = mesh.vertices[vid1].normal;
+    const auto n2 = mesh.vertices[vid2].normal;
+    const auto n = normalize((n2 - n1) * v.t + n1);
+    point_selection.vertices.push_back({v.position, n});
+  }
   point_selection.update();
 }
 

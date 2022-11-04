@@ -105,6 +105,9 @@ int main(int argc, char* argv[]) {
             // primitive_drawing = !primitive_drawing;
             viewer.preprocess_face_curve();
             break;
+          case sf::Keyboard::S:
+            viewer.smooth_initial_curve();
+            break;
         }
       }
     }

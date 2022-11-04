@@ -51,6 +51,7 @@ class viewer {
   void preprocess_face_curve();
   void check_curve_consistency();
   void compute_curve_curvature();
+  void smooth_initial_curve();
 
  private:
   bool running_ = false;
@@ -101,6 +102,17 @@ class viewer {
     vector<size_t> faces{};
   };
   mesh_face_curve face_curve{};
+
+  struct smoothing_curve {
+    struct vertex {
+      size_t edge[2];
+      vec3 position;
+      float t;
+    };
+    size_t mesh_id;
+    vector<vertex> vertices{};
+  };
+  smoothing_curve smooth_curve{};
 
   vec3 aabb_min{};
   vec3 aabb_max{};
