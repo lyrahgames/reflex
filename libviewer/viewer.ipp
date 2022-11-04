@@ -685,6 +685,25 @@ void viewer::smooth_initial_curve() {
 
     const auto d1 = length(prev - p1);
     const auto d2 = length(next - p2);
+
+    if (d1 / sqrt(u2) < 1e-3f) {
+      const auto k = (t1 < 0.5f) ? 0 : 1;
+      smooth_curve.vertices[i].edge[0] = x.edge[k];
+      smooth_curve.vertices[i].edge[1] = x.edge[k];
+      smooth_curve.vertices[i].position = mesh.vertices[x.edge[k]].position;
+      smooth_curve.vertices[i].t = 0.0f;
+      continue;
+    }
+
+    if (d2 / sqrt(u2) < 1e-3f) {
+      const auto k = (t2 < 0.5f) ? 0 : 1;
+      smooth_curve.vertices[i].edge[0] = x.edge[k];
+      smooth_curve.vertices[i].edge[1] = x.edge[k];
+      smooth_curve.vertices[i].position = mesh.vertices[x.edge[k]].position;
+      smooth_curve.vertices[i].t = 0.0f;
+      continue;
+    }
+
     const auto w = 1.0f / (d1 + d2);
     const auto w1 = w * d2;
     const auto w2 = w * d1;
