@@ -663,15 +663,22 @@ void viewer::smooth_initial_curve() {
   if (smooth_curve.vertices.size() <= 2) return;
 
   const auto& mesh = scene.meshes[smooth_curve.mesh_id];
+  decltype(smooth_curve.vertices) vertices{};
+  vertices.push_back(smooth_curve.vertices[0]);
 
-  auto vertices = smooth_curve.vertices;
-  for (size_t i = 1; i < vertices.size() - 1; ++i) {
-    const auto& x = vertices[i];
+  for (size_t i = 1; i < smooth_curve.vertices.size() - 1; ++i) {
+    const auto& x = smooth_curve.vertices[i];
     const auto vid1 = x.edge[0];
     const auto vid2 = x.edge[1];
-    if (vid1 == vid2) continue;
-    const auto& prev = vertices[i - 1].position;
-    const auto& next = vertices[i + 1].position;
+
+    if (vid1 == vid2) {
+      vertices.push_back(x);
+      continue;
+    }
+
+    // const auto& prev = vertices[i - 1].position;
+    const auto& prev = vertices.back().position;
+    const auto& next = smooth_curve.vertices[i + 1].position;
     const auto& v1 = mesh.vertices[vid1].position;
     const auto& v2 = mesh.vertices[vid2].position;
 
@@ -688,19 +695,15 @@ void viewer::smooth_initial_curve() {
 
     if (d1 / sqrt(u2) < 1e-3f) {
       const auto k = (t1 < 0.5f) ? 0 : 1;
-      smooth_curve.vertices[i].edge[0] = x.edge[k];
-      smooth_curve.vertices[i].edge[1] = x.edge[k];
-      smooth_curve.vertices[i].position = mesh.vertices[x.edge[k]].position;
-      smooth_curve.vertices[i].t = 0.0f;
+      vertices.push_back(
+          {{x.edge[k], x.edge[k]}, mesh.vertices[x.edge[k]].position, 0.0f});
       continue;
     }
 
     if (d2 / sqrt(u2) < 1e-3f) {
       const auto k = (t2 < 0.5f) ? 0 : 1;
-      smooth_curve.vertices[i].edge[0] = x.edge[k];
-      smooth_curve.vertices[i].edge[1] = x.edge[k];
-      smooth_curve.vertices[i].position = mesh.vertices[x.edge[k]].position;
-      smooth_curve.vertices[i].t = 0.0f;
+      vertices.push_back(
+          {{x.edge[k], x.edge[k]}, mesh.vertices[x.edge[k]].position, 0.0f});
       continue;
     }
 
@@ -711,9 +714,10 @@ void viewer::smooth_initial_curve() {
     const auto t = clamp(w1 * t1 + w2 * t2, 0.0f, 1.0f);
     const auto p = t * u + v1;
 
-    smooth_curve.vertices[i].position = p;
-    smooth_curve.vertices[i].t = t;
+    vertices.push_back({{x.edge[0], x.edge[1]}, p, t});
   }
+  vertices.push_back(smooth_curve.vertices.back());
+  smooth_curve.vertices.swap(vertices);
 
   // Generate points
   point_selection.vertices.clear();
