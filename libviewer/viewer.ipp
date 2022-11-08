@@ -534,11 +534,15 @@ void viewer::preprocess_curve() {
 
   check_curve_consistency();
 
+  smooth_curve.mesh_id = curve.mesh_id;
+  smooth_curve.vertices.clear();
+
   point_selection.vertices.clear();
   for (auto vid : curve.vertices) {
     const auto& m = scene.meshes[curve.mesh_id];
     const auto& v = m.vertices;
     point_selection.vertices.push_back({v[vid].position, v[vid].normal, 0, 0});
+    smooth_curve.vertices.push_back({{vid, vid}, v[vid].position, 0.0f});
   }
   point_selection.update();
 }
@@ -641,7 +645,7 @@ void viewer::preprocess_face_curve() {
     size_t i = 0;
     for (; i < 3; ++i)
       if (m.face_neighbors[b][i] == a) break;
-    const auto vid = m.faces[a][i];
+    const auto vid = m.faces[b][i];
     const auto& vertex = m.vertices[vid];
     point_selection.vertices.push_back({vertex.position, vertex.normal});
     smooth_curve.vertices.push_back({{vid, vid}, vertex.position, 0.0f});
@@ -666,15 +670,125 @@ void viewer::smooth_initial_curve() {
   decltype(smooth_curve.vertices) vertices{};
   vertices.push_back(smooth_curve.vertices[0]);
 
+  size_t snap_id = -1;
+
   for (size_t i = 1; i < smooth_curve.vertices.size() - 1; ++i) {
     const auto& x = smooth_curve.vertices[i];
     const auto vid1 = x.edge[0];
     const auto vid2 = x.edge[1];
 
     if (vid1 == vid2) {
-      vertices.push_back(x);
+      const auto& p = mesh.vertices[vid1].position;
+      const auto& n = mesh.vertices[vid1].normal;
+
+      const auto neighbor_offset = mesh.neighbor_offset[vid1];
+      const auto neighbor_count =
+          mesh.neighbor_offset[vid1 + 1] - neighbor_offset;
+      size_t neighbors[neighbor_count];
+      for (size_t i = 0; i < neighbor_count; ++i)
+        neighbors[i] = mesh.neighbors[neighbor_offset + i];
+
+      const auto& prev = vertices.back();
+      const auto& next = smooth_curve.vertices[i + 1];
+
+      size_t start[2];
+      size_t end[2];
+      for (size_t k = 0; k < neighbor_count; ++k) {
+        if (prev.edge[0] == neighbors[k]) start[0] = k;
+        if (prev.edge[1] == neighbors[k]) start[1] = k;
+        if (next.edge[0] == neighbors[k]) end[0] = k;
+        if (next.edge[1] == neighbors[k]) end[1] = k;
+      }
+
+      if (((neighbor_count + start[1] - start[0]) % neighbor_count) > 1)
+        swap(start[0], start[1]);
+      if (((neighbor_count + end[1] - end[0]) % neighbor_count) > 1)
+        swap(end[0], end[1]);
+
+      size_t ccw_path_start = (start[0] + 1) % neighbor_count;
+      size_t ccw_path_end = end[1];
+      size_t cw_path_start = (start[1] + neighbor_count - 1) % neighbor_count;
+      size_t cw_path_end = end[0];
+
+      // float ts[neighbor_count];
+
+      // for (auto k = cw_path_start; k != cw_path_end;
+      //      k = (k + neighbor_count - 1) % neighbor_count) {
+      //   const auto neighbor = neighbors[k];
+      //   const auto position =
+      //       (mesh.vertices[vid1].position + mesh.vertices[neighbor].position) /
+      //       2.0f;
+      //   vertices.push_back({{vid1, neighbor}, position, 0.5f});
+      // }
+
+      const auto angle = [](auto x, auto y) {
+        return acos(dot(normalize(x), normalize(y)));
+      };
+      auto total_angle =
+          angle(prev.position - p,
+                mesh.vertices[neighbors[cw_path_start]].position - p);
+      total_angle +=
+          angle(next.position - p,
+                mesh.vertices[neighbors[(cw_path_end + 1) % neighbor_count]]
+                        .position -
+                    p);
+      for (auto k = (cw_path_start + neighbor_count - 1) % neighbor_count;
+           k != cw_path_end; k = (k + neighbor_count - 1) % neighbor_count)
+        total_angle += angle(
+            mesh.vertices[neighbors[(k + 1) % neighbor_count]].position - p,
+            mesh.vertices[neighbors[k]].position - p);
+
+      cout << "total angle = " << total_angle << endl;
+
+      if (total_angle >= pi) {
+        cout << "total angle to big" << endl;
+        vertices.push_back(x);
+        continue;
+      }
+
+      auto p1 = prev.position - p;
+      auto rp1 = length(p1);
+      auto p2 = next.position - p;
+      auto rp2 = length(p2);
+      for (auto k = cw_path_start; k != cw_path_end;
+           k = (k + neighbor_count - 1) % neighbor_count) {
+        const auto v = mesh.vertices[neighbors[k]].position - p;
+
+        const auto phi = angle(p1, v);
+        const auto r = length(v);
+
+        const auto p1x = rp1;
+        const auto p1y = 0.0f;
+        const auto p2x = rp2 * cos(total_angle);
+        const auto p2y = rp2 * sin(total_angle);
+        const auto vx = r * cos(phi);
+        const auto vy = r * sin(phi);
+
+        const auto det = vx * (p2y - p1y) - vy * (p2x - p1x);
+        const auto t =
+            clamp((p2x * (p2y - p1y) - p2y * (p2x - p1x)) / det, 0.0f, 1.0f);
+
+        vertices.push_back({{vid1, neighbors[k]}, t * v + p, t});
+
+        p1 = t * v;
+        rp1 = t * r;
+        total_angle -= phi;
+      }
+
+      // for (size_t k = 0; k < neighbor_count; ++k) {
+      //   const auto neighbor = neighbors[k];
+      //   const auto position =
+      //       (mesh.vertices[vid1].position + mesh.vertices[neighbor].position) /
+      //       2.0f;
+      //   vertices.push_back({{vid1, neighbor}, position, 0.5f});
+      // }
+
+      // vertices.push_back(x);
       continue;
     }
+
+    if ((snap_id == vid1) || (snap_id == vid2)) continue;
+    snap_id = -1;
 
     // const auto& prev = vertices[i - 1].position;
     const auto& prev = vertices.back().position;
@@ -693,15 +807,27 @@ void viewer::smooth_initial_curve() {
     const auto d1 = length(prev - p1);
     const auto d2 = length(next - p2);
 
-    if (d1 / sqrt(u2) < 1e-3f) {
+    if (d1 / sqrt(u2) < 1e-2f) {
       const auto k = (t1 < 0.5f) ? 0 : 1;
+      snap_id = x.edge[k];
+
+      while ((vertices.back().edge[0] == snap_id) ||
+             (vertices.back().edge[1] == snap_id))
+        vertices.pop_back();
+
       vertices.push_back(
           {{x.edge[k], x.edge[k]}, mesh.vertices[x.edge[k]].position, 0.0f});
       continue;
     }
 
-    if (d2 / sqrt(u2) < 1e-3f) {
+    if (d2 / sqrt(u2) < 1e-2f) {
       const auto k = (t2 < 0.5f) ? 0 : 1;
+      snap_id = x.edge[k];
+
+      while ((vertices.back().edge[0] == snap_id) ||
+             (vertices.back().edge[1] == snap_id))
+        vertices.pop_back();
+
       vertices.push_back(
           {{x.edge[k], x.edge[k]}, mesh.vertices[x.edge[k]].position, 0.0f});
       continue;
@@ -716,6 +842,280 @@ void viewer::smooth_initial_curve() {
 
     vertices.push_back({{x.edge[0], x.edge[1]}, p, t});
   }
+  vertices.push_back(smooth_curve.vertices.back());
+  smooth_curve.vertices.swap(vertices);
+
+  // Generate points
+  point_selection.vertices.clear();
+  for (auto& v : smooth_curve.vertices) {
+    const auto vid1 = v.edge[0];
+    const auto vid2 = v.edge[1];
+    const auto n1 = mesh.vertices[vid1].normal;
+    const auto n2 = mesh.vertices[vid2].normal;
+    const auto n = normalize((n2 - n1) * v.t + n1);
+    point_selection.vertices.push_back({v.position, n});
+  }
+  point_selection.update();
+}
+
+void viewer::smooth_vertex_curve() {
+  if (smooth_curve.vertices.size() <= 2) return;
+
+  const auto& mesh = scene.meshes[smooth_curve.mesh_id];
+  decltype(smooth_curve.vertices) vertices{};
+  vertices.push_back(smooth_curve.vertices[0]);
+
+  size_t snap_id = -1;
+
+  for (size_t i = 1; i < smooth_curve.vertices.size() - 1; ++i) {
+    const auto& x = smooth_curve.vertices[i];
+    const auto vid1 = x.edge[0];
+    const auto vid2 = x.edge[1];
+
+    const auto& prev = vertices.back();
+    const auto& next = smooth_curve.vertices[i + 1];
+
+    // cout << i << endl;
+
+    if (vid1 != vid2) {
+      // vertices.push_back(x);
+      if ((snap_id == vid1) || (snap_id == vid2)) continue;
+      snap_id = -1;
+
+      // const auto& prev = vertices[i - 1].position;
+      const auto& prev = vertices.back().position;
+      const auto& next = smooth_curve.vertices[i + 1].position;
+      const auto& v1 = mesh.vertices[vid1].position;
+      const auto& v2 = mesh.vertices[vid2].position;
+
+      const auto u = v2 - v1;
+      const auto u2 = dot(u, u);
+      const auto t1 = dot(u, prev - v1) / u2;
+      const auto t2 = dot(u, next - v1) / u2;
+
+      const auto p1 = t1 * u + v1;
+      const auto p2 = t2 * u + v1;
+
+      const auto d1 = length(prev - p1);
+      const auto d2 = length(next - p2);
+
+      if (d1 / sqrt(u2) < 1e-2f) {
+        const auto k = (t1 < 0.5f) ? 0 : 1;
+        snap_id = x.edge[k];
+
+        while ((vertices.back().edge[0] == snap_id) ||
+               (vertices.back().edge[1] == snap_id))
+          vertices.pop_back();
+
+        vertices.push_back(
+            {{x.edge[k], x.edge[k]}, mesh.vertices[x.edge[k]].position, 0.0f});
+        continue;
+      }
+
+      if (d2 / sqrt(u2) < 1e-2f) {
+        const auto k = (t2 < 0.5f) ? 0 : 1;
+        snap_id = x.edge[k];
+
+        while ((vertices.back().edge[0] == snap_id) ||
+               (vertices.back().edge[1] == snap_id))
+          vertices.pop_back();
+
+        vertices.push_back(
+            {{x.edge[k], x.edge[k]}, mesh.vertices[x.edge[k]].position, 0.0f});
+        continue;
+      }
+
+      const auto w = 1.0f / (d1 + d2);
+      const auto w1 = w * d2;
+      const auto w2 = w * d1;
+
+      const auto t = clamp(w1 * t1 + w2 * t2, 0.0f, 1.0f);
+      const auto p = t * u + v1;
+
+      vertices.push_back({{x.edge[0], x.edge[1]}, p, t});
+      continue;
+    }
+
+    // const auto& p = mesh.vertices[vid1].position;
+    //   const auto& n = mesh.vertices[vid1].normal;
+
+    const auto vid = vid1;
+    //
+    assert(mesh.edges.contains(
+        pair(min(vid, prev.edge[0]), max(vid, prev.edge[0]))));
+    //
+    //
+    size_t split = mesh.neighbor_offset[vid + 1];
+    for (size_t k = mesh.neighbor_offset[vid];
+         k < mesh.neighbor_offset[vid + 1]; ++k) {
+      if (prev.edge[0] != mesh.neighbors[k]) continue;
+      split = k;
+      break;
+    }
+    assert(split < mesh.neighbor_offset[vid + 1]);
+    //
+    const auto neighbor_offset = mesh.neighbor_offset[vid];
+    const auto neighbor_count = mesh.neighbor_offset[vid + 1] - neighbor_offset;
+    //
+    // Store neighbors in cyclic shift order.
+    size_t neighbors[neighbor_count];
+    size_t index = 0;
+    for (size_t k = split + 1; k < mesh.neighbor_offset[vid + 1]; ++k)
+      neighbors[index++] = mesh.neighbors[k];
+    for (size_t k = mesh.neighbor_offset[vid]; k <= split; ++k)
+      neighbors[index++] = mesh.neighbors[k];
+    assert(index == neighbor_count);
+    //
+    size_t ccw_path_start = 0;
+    size_t cw_path_end =
+        (prev.edge[0] == prev.edge[1]) ? (neighbor_count - 1) : neighbor_count;
+    //
+    size_t ccw_path_end;
+    for (size_t k = 0; k < neighbor_count; ++k) {
+      if (next.edge[0] != neighbors[k]) continue;
+      ccw_path_end = k;
+      break;
+    }
+    //
+    size_t cw_path_start =
+        (next.edge[0] == next.edge[1]) ? (ccw_path_end + 1) : ccw_path_end;
+
+    assert(ccw_path_start < ccw_path_end);
+    assert(ccw_path_end <= cw_path_start);
+    assert(cw_path_start < cw_path_end);
+    assert(cw_path_end <= neighbor_count);
+
+    // Reverse cw segments
+    for (size_t k = 0; k < (cw_path_end - cw_path_start) / 2; ++k)
+      swap(neighbors[cw_path_start + k], neighbors[cw_path_end - 1 - k]);
+
+    // for (size_t k = ccw_path_start; k != ccw_path_end; ++k) {
+    //   const auto neighbor = neighbors[k];
+    //   const auto position =
+    //       (mesh.vertices[vid].position + mesh.vertices[neighbor].position) /
+    //       2.0f;
+    //   vertices.push_back({{vid, neighbor}, position, 0.5f});
+    // }
+
+    // for (size_t k = cw_path_end; k != cw_path_start; --k) {
+    //   const auto neighbor = neighbors[k - 1];
+    //   const auto position =
+    //       (mesh.vertices[vid].position + mesh.vertices[neighbor].position) /
+    //       2.0f;
+    //   vertices.push_back({{neighbor, vid}, position, 0.5f});
+    // }
+
+    // for (size_t k = cw_path_start; k != cw_path_end; ++k) {
+    //   const auto neighbor = neighbors[k];
+    //   const auto position =
+    //       (mesh.vertices[vid].position + mesh.vertices[neighbor].position) /
+    //       2.0f;
+    //   vertices.push_back({{neighbor, vid}, position, 0.5f});
+    // }
+
+    const auto p1 = prev.position - x.position;
+    const auto p1r = length(p1);
+    const auto p1n = p1 / p1r;
+
+    const auto p2 = next.position - x.position;
+    const auto p2r = length(p2);
+    const auto p2n = p2 / p2r;
+
+    // prepare unfolding
+    float vr[neighbor_count];
+    vec3 vn[neighbor_count];
+    for (size_t k = 0; k < neighbor_count; ++k) {
+      vn[k] = mesh.vertices[neighbors[k]].position - x.position;
+      vr[k] = length(vn[k]);
+      vn[k] /= vr[k];
+    }
+
+    // unfolding
+    float angles[neighbor_count];
+    // ccw angles
+    angles[ccw_path_start] = acos(dot(p1n, vn[ccw_path_start]));
+    for (size_t k = ccw_path_start + 1; k < ccw_path_end; ++k)
+      angles[k] = angles[k - 1] + acos(dot(vn[k - 1], vn[k]));
+    float ccw_angle =
+        angles[ccw_path_end - 1] + acos(dot(vn[ccw_path_end - 1], p2n));
+    // cw angles
+    angles[cw_path_start] = acos(dot(p1n, vn[cw_path_start]));
+    for (size_t k = cw_path_start + 1; k < cw_path_end; ++k)
+      angles[k] = angles[k - 1] + acos(dot(vn[k - 1], vn[k]));
+    float cw_angle =
+        angles[cw_path_end - 1] + acos(dot(vn[cw_path_end - 1], p2n));
+
+    bool ccw_valid = ccw_angle < pi;
+    bool cw_valid = cw_angle < pi;
+
+    float t[neighbor_count];
+    // ccw
+    float ccw_distance = (ccw_valid) ? 0 : INFINITY;
+    if (ccw_valid) {
+      float sx = p1r;
+      float sy = 0;
+      float dx = p2r * cos(ccw_angle);
+      float dy = p2r * sin(ccw_angle);
+      for (size_t k = ccw_path_start; k < ccw_path_end; ++k) {
+        float vx = vr[k] * cos(angles[k]);
+        float vy = vr[k] * sin(angles[k]);
+        t[k] = clamp(((dy - sy) * dx - (dx - sx) * dy) /
+                         (vx * (dy - sy) - vy * (dx - sx)),
+                     0.0f, 1.0f);
+        ccw_distance += sqrt((t[k] * vx - sx) * (t[k] * vx - sx) +
+                             (t[k] * vy - sy) * (t[k] * vy - sy));
+        sx = t[k] * vx;
+        sy = t[k] * vy;
+      }
+      ccw_distance += sqrt((dx - sx) * (dx - sx) + (dy - sy) * (dy - sy));
+    }
+    //
+    // cw
+    float cw_distance = (cw_valid) ? 0 : INFINITY;
+    if (cw_valid) {
+      float sx = p1r;
+      float sy = 0;
+      float dx = p2r * cos(cw_angle);
+      float dy = p2r * sin(cw_angle);
+      for (size_t k = cw_path_start; k < cw_path_end; ++k) {
+        float vx = vr[k] * cos(angles[k]);
+        float vy = vr[k] * sin(angles[k]);
+        t[k] = clamp(((dy - sy) * dx - (dx - sx) * dy) /
+                         (vx * (dy - sy) - vy * (dx - sx)),
+                     0.0f, 1.0f);
+        cw_distance += sqrt((t[k] * vx - sx) * (t[k] * vx - sx) +
+                            (t[k] * vy - sy) * (t[k] * vy - sy));
+        sx = t[k] * vx;
+        sy = t[k] * vy;
+      }
+      cw_distance += sqrt((dx - sx) * (dx - sx) + (dy - sy) * (dy - sy));
+    }
+
+    float vertex_distance = p1r + p2r;
+
+    if ((ccw_distance < vertex_distance) && (ccw_distance <= cw_distance)) {
+      for (size_t k = ccw_path_start; k != ccw_path_end; ++k) {
+        const auto neighbor = neighbors[k];
+        const auto position = (1.0f - t[k]) * mesh.vertices[vid].position +
+                              t[k] * mesh.vertices[neighbor].position;
+        vertices.push_back({{vid, neighbor}, position, t[k]});
+      }
+      continue;
+    }
+
+    if ((cw_distance < vertex_distance) && (cw_distance <= ccw_distance)) {
+      for (size_t k = cw_path_start; k != cw_path_end; ++k) {
+        const auto neighbor = neighbors[k];
+        const auto position = (1.0f - t[k]) * mesh.vertices[vid].position +
+                              t[k] * mesh.vertices[neighbor].position;
+        vertices.push_back({{neighbor, vid}, position, t[k]});
+      }
+      continue;
+    }
+
+    vertices.push_back(x);
+  }
+
   vertices.push_back(smooth_curve.vertices.back());
   smooth_curve.vertices.swap(vertices);
 

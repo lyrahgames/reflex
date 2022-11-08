@@ -52,6 +52,7 @@ class viewer {
   void check_curve_consistency();
   void compute_curve_curvature();
   void smooth_initial_curve();
+  void smooth_vertex_curve();
 
  private:
   bool running_ = false;

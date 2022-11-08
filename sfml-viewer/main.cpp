@@ -108,6 +108,9 @@ int main(int argc, char* argv[]) {
           case sf::Keyboard::S:
             viewer.smooth_initial_curve();
             break;
+          case sf::Keyboard::V:
+            viewer.smooth_vertex_curve();
+            break;
         }
       }
     }

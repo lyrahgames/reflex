@@ -149,6 +149,44 @@ struct basic_mesh {
           e.first;
     }
 
+    for (size_t i = 0; i < vertices.size(); ++i) {
+      const auto& n = vertices[i].normal;
+      const auto& p = vertices[i].position;
+
+      for (size_t j = neighbor_offset[i] + 1; j < neighbor_offset[i + 1]; ++j) {
+        const auto vid1 = neighbors[j - 1];
+        const auto v1 = vertices[vid1].position - p;
+
+        bool has_neighbor = false;
+        for (size_t k = j; k < neighbor_offset[i + 1]; ++k) {
+          const auto vid2 = neighbors[k];
+          const auto v2 = vertices[vid2].position - p;
+
+          if (edges.contains(pair(min(vid1, vid2), max(vid1, vid2))) &&
+              (dot(n, cross(v1, v2)) > 0.0f)) {
+            swap(neighbors[k], neighbors[j]);
+            has_neighbor = true;
+            break;
+          }
+        }
+        if (!has_neighbor)
+          cout << i << " " << (j - neighbor_offset[i]) << " no neighbor."
+               << endl;
+      }
+
+      for (size_t j = neighbor_offset[i] + 1; j < neighbor_offset[i + 1]; ++j) {
+        if (!edges.contains(pair(min(neighbors[j - 1], neighbors[j]),
+                                 max(neighbors[j - 1], neighbors[j])))) {
+          // const auto v1 = vertices[neighbors[j - 1]].position - p;
+          // const auto v2 = vertices[neighbors[j]].position - p;
+          // if (dot(n, cross(v1, v2)) > 0.0f) continue;
+          cout << "Failed to sort neighbors: " << i << ": "
+               << (j - neighbor_offset[i]) << endl;
+          break;
+        }
+      }
+    }
+
     // for (size_t i = 0; i < vertices.size(); ++i) {
     //   assert(neighbor_count[i] == neighbor_offset[i + 1] - neighbor_offset[i]);
     // cout << i << ": " << neighbor_offset[i + 1] - neighbor_offset[i] << ": ";
