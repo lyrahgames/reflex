@@ -106,9 +106,10 @@ class viewer {
 
   struct smoothing_curve {
     struct vertex {
-      size_t edge[2];
-      vec3 position;
-      float t;
+      size_t edge[2]{};
+      vec3 position{};
+      float t{};
+      float curvature{};
     };
     size_t mesh_id;
     vector<vertex> vertices{};

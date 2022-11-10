@@ -534,17 +534,87 @@ void viewer::preprocess_curve() {
 
   check_curve_consistency();
 
-  smooth_curve.mesh_id = curve.mesh_id;
-  smooth_curve.vertices.clear();
-
   point_selection.vertices.clear();
   for (auto vid : curve.vertices) {
-    const auto& m = scene.meshes[curve.mesh_id];
-    const auto& v = m.vertices;
-    point_selection.vertices.push_back({v[vid].position, v[vid].normal, 0, 0});
-    smooth_curve.vertices.push_back({{vid, vid}, v[vid].position, 0.0f});
+    const auto& mesh = scene.meshes[curve.mesh_id];
+    const auto& v = mesh.vertices[vid];
+    point_selection.vertices.push_back({v.position, v.normal, 0, 0});
   }
   point_selection.update();
+
+  {
+    smooth_curve.mesh_id = curve.mesh_id;
+    smooth_curve.vertices.clear();
+    const auto& mesh = scene.meshes[curve.mesh_id];
+    {
+      const auto vid = curve.vertices.front();
+      smooth_curve.vertices.push_back(
+          {{vid, vid}, mesh.vertices[vid].position, 0.0f, 0.0f});
+    }
+    for (size_t i = 1; i < curve.vertices.size() - 1; ++i) {
+      const auto vid = curve.vertices[i];
+      // initial curvature
+      //
+      // inner angle
+      const auto neighbor_count =
+          mesh.neighbor_offset[vid + 1] - mesh.neighbor_offset[vid];
+      float angles[neighbor_count + 1]{};
+      for (size_t k = 1; k < neighbor_count; ++k) {
+        const auto v1 = normalize(
+            mesh.vertices[mesh.neighbors[mesh.neighbor_offset[vid] + k - 1]]
+                .position -
+            mesh.vertices[vid].position);
+        const auto v2 = normalize(
+            mesh.vertices[mesh.neighbors[mesh.neighbor_offset[vid] + k]]
+                .position -
+            mesh.vertices[vid].position);
+        angles[k] = angles[k - 1] + acos(dot(v1, v2));
+      }
+      {
+        const auto v1 =
+            normalize(mesh.vertices[mesh.neighbors[mesh.neighbor_offset[vid] +
+                                                   neighbor_count - 1]]
+                          .position -
+                      mesh.vertices[vid].position);
+        const auto v2 = normalize(
+            mesh.vertices[mesh.neighbors[mesh.neighbor_offset[vid]]].position -
+            mesh.vertices[vid].position);
+        angles[neighbor_count] = angles[neighbor_count - 1] + acos(dot(v1, v2));
+      }
+
+      size_t start, end;
+      for (size_t k = 0; k < neighbor_count; ++k) {
+        if (mesh.neighbors[mesh.neighbor_offset[vid] + k] ==
+            curve.vertices[i - 1])
+          start = k;
+        if (mesh.neighbors[mesh.neighbor_offset[vid] + k] ==
+            curve.vertices[i + 1])
+          end = k;
+      }
+
+      float curve_angle = angles[end] - angles[start];
+      curve_angle = (curve_angle < 0.0f)
+                        ? (angles[neighbor_count] + curve_angle)
+                        : curve_angle;
+
+      float curvature = pi - 2.0f * pi * curve_angle / angles[neighbor_count];
+      float scale = 0.2f;
+
+      smooth_curve.vertices.push_back(
+          {{vid, vid}, mesh.vertices[vid].position, 0.0f, scale * curvature});
+
+      cout << "curve angle = " << curve_angle * 180.0f / pi << endl;
+      for (size_t k = 0; k <= neighbor_count; ++k)
+        cout << angles[k] * 180.0f / pi << "°, ";
+      cout << "\ncurvature = " << curvature * 180.0f / pi << "°" << endl;
+    }
+
+    {
+      const auto vid = curve.vertices.back();
+      smooth_curve.vertices.push_back(
+          {{vid, vid}, mesh.vertices[vid].position, 0.0f, 0.0f});
+    }
+  }
 }
 
 void viewer::preprocess_face_curve() {
@@ -833,6 +903,31 @@ void viewer::smooth_initial_curve() {
       continue;
     }
 
+    if (x.curvature != 0.0f) {
+      cout << "edge curvature relaxation" << endl;
+      const auto ul = length(u);
+      const auto inv_ul = 1.0f / ul;
+      const auto e = inv_ul * u;
+      const auto p = prev - v1;
+      const auto q = next - v1;
+      const auto px = dot(e, p);
+      const auto qx = dot(e, q);
+      const auto py = -length(p - px * e);
+      const auto qy = length(q - qx * e);
+      const auto sx = px + qx;
+      const auto dy = qy - py;
+      const auto edot = px * qx + py * qy;
+      const auto ehat = px * qy - py * qx;
+      const auto cotk = 1.0f / tan(x.curvature);
+      const auto sgnk = (x.curvature < 0) ? -1.0f : 1.0f;
+      const auto h = (sx + dy * cotk) / 2;
+      const auto et = inv_ul * (h - sgnk * sqrt(h * h - edot - ehat * cotk));
+      const auto t = clamp(et, 0.0f, 1.0f);
+      const auto pos = t * u + v1;
+      vertices.push_back({{x.edge[0], x.edge[1]}, pos, t, x.curvature});
+      continue;
+    }
+
     const auto w = 1.0f / (d1 + d2);
     const auto w1 = w * d2;
     const auto w2 = w * d1;
@@ -954,6 +1049,7 @@ void viewer::smooth_vertex_curve() {
       //       2.0f;
       //   vertices.push_back({{neighbor, vid}, position, 0.5f});
       // }
+      // return;
 
       const auto p1 = prev.position - x.position;
       const auto p1r = length(p1);
@@ -987,70 +1083,154 @@ void viewer::smooth_vertex_curve() {
       float cw_angle =
           angles[cw_path_end - 1] + acos(dot(vn[cw_path_end - 1], p2n));
 
-      bool ccw_valid = ccw_angle < pi;
-      bool cw_valid = cw_angle < pi;
+      bool ccw_valid = ccw_angle < (pi - x.curvature);
+      bool cw_valid = cw_angle < (pi + x.curvature);
+
+      cout << "ccw = " << ccw_angle * 180.0f / pi << "°" << '\n'
+           << "cw = " << cw_angle * 180.0f / pi << "°" << '\n'
+           << "κ = " << x.curvature * 180.0f / pi << "°" << endl;
+
+      if (cw_valid) cout << "clockwise path is valid" << endl;
+      if (ccw_valid) cout << "counterclockwise path is valid" << endl;
+
+      // bool ccw_valid = true;
+      // bool cw_valid = true;
 
       float t[neighbor_count];
       // ccw
       float ccw_distance = (ccw_valid) ? 0 : INFINITY;
       if (ccw_valid) {
-        float sx = p1r;
-        float sy = 0;
-        float dx = p2r * cos(ccw_angle);
-        float dy = p2r * sin(ccw_angle);
-        for (size_t k = ccw_path_start; k < ccw_path_end; ++k) {
-          float vx = vr[k] * cos(angles[k]);
-          float vy = vr[k] * sin(angles[k]);
-          t[k] = clamp(((dy - sy) * dx - (dx - sx) * dy) /
-                           (vx * (dy - sy) - vy * (dx - sx)),
-                       0.0f, 1.0f);
-          ccw_distance += sqrt((t[k] * vx - sx) * (t[k] * vx - sx) +
-                               (t[k] * vy - sy) * (t[k] * vy - sy));
-          sx = t[k] * vx;
-          sy = t[k] * vy;
+        if (x.curvature == 0) {
+          float sx = p1r;
+          float sy = 0;
+          float dx = p2r * cos(ccw_angle);
+          float dy = p2r * sin(ccw_angle);
+          for (size_t k = ccw_path_start; k < ccw_path_end; ++k) {
+            float vx = vr[k] * cos(angles[k]);
+            float vy = vr[k] * sin(angles[k]);
+            t[k] = clamp(((dy - sy) * dx - (dx - sx) * dy) /
+                             (vx * (dy - sy) - vy * (dx - sx)),
+                         0.0f, 1.0f);
+            ccw_distance += sqrt((t[k] * vx - sx) * (t[k] * vx - sx) +
+                                 (t[k] * vy - sy) * (t[k] * vy - sy));
+            sx = t[k] * vx;
+            sy = t[k] * vy;
+          }
+          ccw_distance += sqrt((dx - sx) * (dx - sx) + (dy - sy) * (dy - sy));
+        } else {
+          float pr = p1r;
+          float pa = 0;
+          float curvature = x.curvature;
+          float qx, qy;
+
+          for (size_t k = ccw_path_start; k < ccw_path_end; ++k) {
+            const auto px = pr * cos(pa - angles[k]);
+            const auto py = pr * sin(pa - angles[k]);
+            qx = p2r * cos(ccw_angle - angles[k]);
+            qy = p2r * sin(ccw_angle - angles[k]);
+            const auto sx = px + qx;
+            const auto dy = qy - py;
+            const auto edot = px * qx + py * qy;
+            const auto ehat = px * qy - py * qx;
+            const auto cotk = 1.0f / tan(curvature);
+            const auto sgnk = (curvature < 0) ? -1.0f : 1.0f;
+            const auto h = (sx + dy * cotk) / 2;
+            const auto et = (h - sgnk * sqrt(h * h - edot - ehat * cotk));
+            t[k] = clamp(et / vr[k], 0.0f, 1.0f);
+
+            pr = t[k] * vr[k];
+            pa = angles[k];
+            curvature -= x.curvature / (ccw_path_end - ccw_path_start);
+
+            ccw_distance += sqrt((pr - px) * (pr - px) + py * py);
+          }
+          ccw_distance += sqrt((qx - pr) * (qx - pr) + qy * qy);
         }
-        ccw_distance += sqrt((dx - sx) * (dx - sx) + (dy - sy) * (dy - sy));
       }
       //
       // cw
       float cw_distance = (cw_valid) ? 0 : INFINITY;
       if (cw_valid) {
-        float sx = p1r;
-        float sy = 0;
-        float dx = p2r * cos(cw_angle);
-        float dy = p2r * sin(cw_angle);
-        for (size_t k = cw_path_start; k < cw_path_end; ++k) {
-          float vx = vr[k] * cos(angles[k]);
-          float vy = vr[k] * sin(angles[k]);
-          t[k] = clamp(((dy - sy) * dx - (dx - sx) * dy) /
-                           (vx * (dy - sy) - vy * (dx - sx)),
-                       0.0f, 1.0f);
-          cw_distance += sqrt((t[k] * vx - sx) * (t[k] * vx - sx) +
-                              (t[k] * vy - sy) * (t[k] * vy - sy));
-          sx = t[k] * vx;
-          sy = t[k] * vy;
+        if (x.curvature == 0) {
+          float sx = p1r;
+          float sy = 0;
+          float dx = p2r * cos(cw_angle);
+          float dy = p2r * sin(cw_angle);
+          for (size_t k = cw_path_start; k < cw_path_end; ++k) {
+            float vx = vr[k] * cos(angles[k]);
+            float vy = vr[k] * sin(angles[k]);
+            t[k] = clamp(((dy - sy) * dx - (dx - sx) * dy) /
+                             (vx * (dy - sy) - vy * (dx - sx)),
+                         0.0f, 1.0f);
+            cw_distance += sqrt((t[k] * vx - sx) * (t[k] * vx - sx) +
+                                (t[k] * vy - sy) * (t[k] * vy - sy));
+            sx = t[k] * vx;
+            sy = t[k] * vy;
+          }
+          cw_distance += sqrt((dx - sx) * (dx - sx) + (dy - sy) * (dy - sy));
+        } else {
+          float pr = p1r;
+          float pa = 0;
+          float curvature = -x.curvature;
+          float qx, qy;
+
+          for (size_t k = cw_path_start; k < cw_path_end; ++k) {
+            const auto px = pr * cos(pa - angles[k]);
+            const auto py = pr * sin(pa - angles[k]);
+            qx = p2r * cos(cw_angle - angles[k]);
+            qy = p2r * sin(cw_angle - angles[k]);
+            const auto sx = px + qx;
+            const auto dy = qy - py;
+            const auto edot = px * qx + py * qy;
+            const auto ehat = px * qy - py * qx;
+            const auto cotk = 1.0f / tan(curvature);
+            const auto sgnk = (curvature < 0) ? -1.0f : 1.0f;
+            const auto h = (sx + dy * cotk) / 2;
+            const auto et = (h - sgnk * sqrt(h * h - edot - ehat * cotk));
+            t[k] = clamp(et / vr[k], 0.0f, 1.0f);
+
+            pr = t[k] * vr[k];
+            pa = angles[k];
+            curvature += x.curvature / (cw_path_end - cw_path_start);
+
+            cw_distance += sqrt((pr - px) * (pr - px) + py * py);
+          }
+          cw_distance += sqrt((qx - pr) * (qx - pr) + qy * qy);
         }
-        cw_distance += sqrt((dx - sx) * (dx - sx) + (dy - sy) * (dy - sy));
       }
+
+      for (size_t k = 0; k < neighbor_count; ++k) cout << t[k] << ", ";
+      cout << endl;
+      for (size_t k = 0; k < neighbor_count; ++k)
+        cout << angles[k] * 180.0f / pi << "°, ";
+      cout << endl;
 
       float vertex_distance = p1r + p2r;
 
-      if ((ccw_distance < vertex_distance) && (ccw_distance <= cw_distance)) {
+      // if ((ccw_distance < vertex_distance) && (ccw_distance <= cw_distance)) {
+      if (ccw_valid) {
         for (size_t k = ccw_path_start; k != ccw_path_end; ++k) {
           const auto neighbor = neighbors[k];
           const auto position = (1.0f - t[k]) * mesh.vertices[vid].position +
                                 t[k] * mesh.vertices[neighbor].position;
-          vertices.push_back({{vid, neighbor}, position, t[k]});
+          vertices.push_back({{vid, neighbor},
+                              position,
+                              t[k],
+                              x.curvature / (ccw_path_end - ccw_path_start)});
         }
         return;
       }
 
-      if ((cw_distance < vertex_distance) && (cw_distance <= ccw_distance)) {
+      // if ((cw_distance < vertex_distance) && (cw_distance <= ccw_distance)) {
+      if (cw_valid) {
         for (size_t k = cw_path_start; k != cw_path_end; ++k) {
           const auto neighbor = neighbors[k];
           const auto position = (1.0f - t[k]) * mesh.vertices[vid].position +
                                 t[k] * mesh.vertices[neighbor].position;
-          vertices.push_back({{neighbor, vid}, position, t[k]});
+          vertices.push_back({{neighbor, vid},
+                              position,
+                              t[k],
+                              x.curvature / (cw_path_end - cw_path_start)});
         }
         return;
       }
@@ -1087,19 +1267,28 @@ void viewer::smooth_vertex_curve() {
         const auto k = (t1 < 0.5f) ? 0 : 1;
         snap_id = x.edge[k];
 
+        float curvature = x.curvature;
+
         while ((vertices.back().edge[0] == snap_id) ||
-               (vertices.back().edge[1] == snap_id))
+               (vertices.back().edge[1] == snap_id)) {
+          curvature += vertices.back().curvature;
           vertices.pop_back();
+        }
 
         // vertices.push_back(
         //     {{x.edge[k], x.edge[k]}, mesh.vertices[x.edge[k]].position, 0.0f});
 
         while ((smooth_curve.vertices[i + 1].edge[0] == snap_id) ||
-               (smooth_curve.vertices[i + 1].edge[1] == snap_id))
+               (smooth_curve.vertices[i + 1].edge[1] == snap_id)) {
+          curvature += smooth_curve.vertices[i + 1].curvature;
           ++i;
+        }
 
-        const auto tmp = smoothing_curve::vertex{
-            {snap_id, snap_id}, mesh.vertices[snap_id].position, 0.0f};
+        const auto tmp =
+            smoothing_curve::vertex{{snap_id, snap_id},
+                                    mesh.vertices[snap_id].position,
+                                    0.0f,
+                                    curvature};
 
         vertex_relaxation(vertices.back(), tmp, smooth_curve.vertices[i + 1]);
 
@@ -1110,22 +1299,67 @@ void viewer::smooth_vertex_curve() {
         const auto k = (t2 < 0.5f) ? 0 : 1;
         snap_id = x.edge[k];
 
+        float curvature = x.curvature;
+
         while ((vertices.back().edge[0] == snap_id) ||
-               (vertices.back().edge[1] == snap_id))
+               (vertices.back().edge[1] == snap_id)) {
+          curvature += vertices.back().curvature;
           vertices.pop_back();
+        }
 
         // vertices.push_back(
         //     {{x.edge[k], x.edge[k]}, mesh.vertices[x.edge[k]].position, 0.0f});
 
         while ((smooth_curve.vertices[i + 1].edge[0] == snap_id) ||
-               (smooth_curve.vertices[i + 1].edge[1] == snap_id))
+               (smooth_curve.vertices[i + 1].edge[1] == snap_id)) {
+          curvature += smooth_curve.vertices[i + 1].curvature;
           ++i;
+        }
 
-        const auto tmp = smoothing_curve::vertex{
-            {snap_id, snap_id}, mesh.vertices[snap_id].position, 0.0f};
+        const auto tmp =
+            smoothing_curve::vertex{{snap_id, snap_id},
+                                    mesh.vertices[snap_id].position,
+                                    0.0f,
+                                    curvature};
 
         vertex_relaxation(vertices.back(), tmp, smooth_curve.vertices[i + 1]);
 
+        continue;
+      }
+
+      if (x.curvature != 0.0f) {
+        cout << "edge curvature relaxation" << endl;
+        // const auto tk = tan(x.curvature);
+        // const auto sgn_tk = (tk < 0.0f) ? -1.0f : 1.0f;
+        // const auto delta_x = (t2 - t1) * length(u);
+        // const auto delta_y = d1 + d2;
+        // const auto tmp = (delta_y - delta_x * tk) / (2.0f * tk);
+        // const auto t =
+        //     clamp((t1 * length(u) + tmp -
+        //            sgn_tk * sqrt(d2 * (delta_x + d1 * tk) / tk + tmp * tmp)) /
+        //               length(u),
+        //           0.0f, 1.0f);
+
+        const auto ul = length(u);
+        const auto inv_ul = 1.0f / ul;
+        const auto e = inv_ul * u;
+        const auto p = prev - v1;
+        const auto q = next - v1;
+        const auto px = dot(e, p);
+        const auto qx = dot(e, q);
+        const auto py = -length(p - px * e);
+        const auto qy = length(q - qx * e);
+        const auto sx = px + qx;
+        const auto dy = qy - py;
+        const auto edot = px * qx + py * qy;
+        const auto ehat = px * qy - py * qx;
+        const auto cotk = 1.0f / tan(x.curvature);
+        const auto sgnk = (x.curvature < 0) ? -1.0f : 1.0f;
+        const auto h = (sx + dy * cotk) / 2;
+        const auto et = inv_ul * (h - sgnk * sqrt(h * h - edot - ehat * cotk));
+        const auto t = clamp(et, 0.0f, 1.0f);
+        const auto pos = t * u + v1;
+        vertices.push_back({{x.edge[0], x.edge[1]}, pos, t, x.curvature});
         continue;
       }
 
@@ -1136,7 +1370,7 @@ void viewer::smooth_vertex_curve() {
       const auto t = clamp(w1 * t1 + w2 * t2, 0.0f, 1.0f);
       const auto p = t * u + v1;
 
-      vertices.push_back({{x.edge[0], x.edge[1]}, p, t});
+      vertices.push_back({{x.edge[0], x.edge[1]}, p, t, x.curvature});
       continue;
     }
 

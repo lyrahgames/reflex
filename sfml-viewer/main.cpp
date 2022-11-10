@@ -78,6 +78,7 @@ int main(int argc, char* argv[]) {
 
   bool drawing = false;
   bool primitive_drawing = false;
+  bool continuous_smoothing = false;
 
   auto old_mouse_pos = sf::Mouse::getPosition(window);
   while (viewer.running()) {
@@ -111,9 +112,14 @@ int main(int argc, char* argv[]) {
           case sf::Keyboard::V:
             viewer.smooth_vertex_curve();
             break;
+          case sf::Keyboard::X:
+            continuous_smoothing = !continuous_smoothing;
+            break;
         }
       }
     }
+
+    if (continuous_smoothing) viewer.smooth_vertex_curve();
 
     // Get new mouse position and compute movement in space.
     const auto mouse_pos = sf::Mouse::getPosition(window);
