@@ -113,6 +113,8 @@ class viewer {
     };
     size_t mesh_id;
     vector<vertex> vertices{};
+    vector<float> curvature_x{};
+    vector<float> curvature_y{};
   };
   smoothing_curve smooth_curve{};
 

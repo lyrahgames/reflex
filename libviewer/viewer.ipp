@@ -598,10 +598,9 @@ void viewer::preprocess_curve() {
                         : curve_angle;
 
       float curvature = pi - 2.0f * pi * curve_angle / angles[neighbor_count];
-      float scale = 0.2f;
 
       smooth_curve.vertices.push_back(
-          {{vid, vid}, mesh.vertices[vid].position, 0.0f, scale * curvature});
+          {{vid, vid}, mesh.vertices[vid].position, 0.0f, curvature});
 
       cout << "curve angle = " << curve_angle * 180.0f / pi << endl;
       for (size_t k = 0; k <= neighbor_count; ++k)
@@ -614,6 +613,48 @@ void viewer::preprocess_curve() {
       smooth_curve.vertices.push_back(
           {{vid, vid}, mesh.vertices[vid].position, 0.0f, 0.0f});
     }
+  }
+
+  // Assign initial curvature function
+  {
+    float curve_length = 0;
+    smooth_curve.curvature_x.push_back(0.0f);
+    smooth_curve.curvature_y.push_back(0.0f);
+    for (size_t i = 1; i < smooth_curve.vertices.size(); ++i) {
+      const auto l = length(smooth_curve.vertices[i].position -
+                            smooth_curve.vertices[i - 1].position);
+      smooth_curve.curvature_x.push_back(curve_length + l / 2);
+      smooth_curve.curvature_y.push_back(smooth_curve.vertices[i].curvature +
+                                         smooth_curve.curvature_y.back());
+      curve_length += l;
+    }
+    for (auto& x : smooth_curve.curvature_x) x /= curve_length;
+    smooth_curve.curvature_x.push_back(1.0f);
+    smooth_curve.curvature_y.push_back(smooth_curve.curvature_y.back());
+
+    const auto weighted_stencil = [&]() {
+      auto curvature_y = smooth_curve.curvature_y;
+      curvature_y[0] = (curvature_y[0] + curvature_y[1]) / 2.0f;
+      for (size_t i = 1; i < smooth_curve.curvature_x.size() - 1; ++i) {
+        curvature_y[i] +=
+            (smooth_curve.curvature_y[i - 1] *
+                 (smooth_curve.curvature_x[i + 1] -
+                  smooth_curve.curvature_x[i]) +
+             smooth_curve.curvature_y[i + 1] *
+                 (smooth_curve.curvature_x[i] -
+                  smooth_curve.curvature_x[i - 1])) /
+            (smooth_curve.curvature_x[i + 1] - smooth_curve.curvature_x[i - 1]);
+        curvature_y[i] /= 2.0f;
+      }
+      curvature_y.back() =
+          (curvature_y[curvature_y.size() - 2] + curvature_y.back()) / 2.0f;
+      smooth_curve.curvature_y.swap(curvature_y);
+    };
+
+    for (int i = 0; i < 5; ++i) weighted_stencil();
+
+    float scale = 1.0f;
+    for (auto& y : smooth_curve.curvature_y) y *= scale;
   }
 }
 
@@ -956,6 +997,34 @@ void viewer::smooth_initial_curve() {
 void viewer::smooth_vertex_curve() {
   if (smooth_curve.vertices.size() <= 2) return;
 
+  // Reassign curvature values
+  {
+    float curve_length = 0;
+    for (size_t i = 1; i < smooth_curve.vertices.size(); ++i)
+      curve_length += length(smooth_curve.vertices[i].position -
+                             smooth_curve.vertices[i - 1].position);
+
+    float current_length = 0;
+    float last_curvature = 0;
+    float last_s = 0;
+    size_t index = 1;
+    for (size_t i = 1; i < smooth_curve.vertices.size() - 1; ++i) {
+      current_length += length(smooth_curve.vertices[i].position -
+                               smooth_curve.vertices[i - 1].position);
+      const auto s = current_length / curve_length;
+      while (s > smooth_curve.curvature_x[index]) ++index;
+
+      const auto u = (s - smooth_curve.curvature_x[index - 1]) /
+                     (smooth_curve.curvature_x[index] -
+                      smooth_curve.curvature_x[index - 1]);
+      const auto curvature = (1 - u) * smooth_curve.curvature_y[index - 1] +
+                             u * smooth_curve.curvature_y[index];
+      smooth_curve.vertices[i].curvature = curvature - last_curvature;
+      last_curvature = curvature;
+      last_s = s;
+    }
+  }
+
   const auto& mesh = scene.meshes[smooth_curve.mesh_id];
   decltype(smooth_curve.vertices) vertices{};
   vertices.push_back(smooth_curve.vertices[0]);
@@ -968,6 +1037,7 @@ void viewer::smooth_vertex_curve() {
     const auto vid2 = x.edge[1];
 
     const auto& prev = vertices.back();
+    // const auto& prev = smooth_curve.vertices[i - 1];
     const auto& next = smooth_curve.vertices[i + 1];
 
     const auto vertex_relaxation = [&mesh, &vertices](const auto& prev,
@@ -1246,8 +1316,8 @@ void viewer::smooth_vertex_curve() {
     if (vid1 != vid2) {
       // vertices.push_back(x);
 
-      // const auto& prev = vertices[i - 1].position;
       const auto& prev = vertices.back().position;
+      // const auto& prev = smooth_curve.vertices[i - 1].position;
       const auto& next = smooth_curve.vertices[i + 1].position;
       const auto& v1 = mesh.vertices[vid1].position;
       const auto& v2 = mesh.vertices[vid2].position;
@@ -1263,7 +1333,7 @@ void viewer::smooth_vertex_curve() {
       const auto d1 = length(prev - p1);
       const auto d2 = length(next - p2);
 
-      if (d1 / sqrt(u2) < 0.25f) {
+      if (d1 / sqrt(u2) < 0.01f) {
         const auto k = (t1 < 0.5f) ? 0 : 1;
         snap_id = x.edge[k];
 
@@ -1295,7 +1365,7 @@ void viewer::smooth_vertex_curve() {
         continue;
       }
 
-      if (d2 / sqrt(u2) < 0.25f) {
+      if (d2 / sqrt(u2) < 0.01f) {
         const auto k = (t2 < 0.5f) ? 0 : 1;
         snap_id = x.edge[k];
 
