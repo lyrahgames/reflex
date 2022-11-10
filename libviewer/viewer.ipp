@@ -615,6 +615,35 @@ void viewer::preprocess_curve() {
     }
   }
 
+  const auto curve_stencil = [&]() {
+    vector<float> curvature(smooth_curve.vertices.size());
+    // curvature[0] = (smooth_curve.vertices[0].curvature +
+    //                 smooth_curve.vertices[1].curvature) /
+    //                2;
+    curvature[0] = 0;
+    for (size_t i = 1; i < curvature.size() - 1; ++i) {
+      const auto l1 = length(smooth_curve.vertices[i].position -
+                             smooth_curve.vertices[i - 1].position);
+      const auto l2 = length(smooth_curve.vertices[i + 1].position -
+                             smooth_curve.vertices[i].position);
+      curvature[i] = (l2 * smooth_curve.vertices[i - 1].curvature +
+                      l1 * smooth_curve.vertices[i + 1].curvature) /
+                     (l1 + l2);
+      curvature[i] = (curvature[i] + smooth_curve.vertices[i].curvature) / 2.0f;
+    }
+    curvature.back() = 0;
+    // curvature.back() = (smooth_curve.vertices.back().curvature +
+    //                     smooth_curve.vertices[curvature.size() - 2].curvature) /
+    //                    2;
+    for (size_t i = 0; i < curvature.size(); ++i)
+      smooth_curve.vertices[i].curvature = curvature[i];
+  };
+
+  for (int i = 0; i < 5; ++i) curve_stencil();
+  float scale = 0.5f;
+  for (size_t i = 0; i < smooth_curve.vertices.size(); ++i)
+    smooth_curve.vertices[i].curvature *= scale;
+
   // Assign initial curvature function
   {
     float curve_length = 0;
@@ -998,32 +1027,32 @@ void viewer::smooth_vertex_curve() {
   if (smooth_curve.vertices.size() <= 2) return;
 
   // Reassign curvature values
-  {
-    float curve_length = 0;
-    for (size_t i = 1; i < smooth_curve.vertices.size(); ++i)
-      curve_length += length(smooth_curve.vertices[i].position -
-                             smooth_curve.vertices[i - 1].position);
+  // {
+  //   float curve_length = 0;
+  //   for (size_t i = 1; i < smooth_curve.vertices.size(); ++i)
+  //     curve_length += length(smooth_curve.vertices[i].position -
+  //                            smooth_curve.vertices[i - 1].position);
 
-    float current_length = 0;
-    float last_curvature = 0;
-    float last_s = 0;
-    size_t index = 1;
-    for (size_t i = 1; i < smooth_curve.vertices.size() - 1; ++i) {
-      current_length += length(smooth_curve.vertices[i].position -
-                               smooth_curve.vertices[i - 1].position);
-      const auto s = current_length / curve_length;
-      while (s > smooth_curve.curvature_x[index]) ++index;
+  //   float current_length = 0;
+  //   float last_curvature = 0;
+  //   float last_s = 0;
+  //   size_t index = 1;
+  //   for (size_t i = 1; i < smooth_curve.vertices.size() - 1; ++i) {
+  //     current_length += length(smooth_curve.vertices[i].position -
+  //                              smooth_curve.vertices[i - 1].position);
+  //     const auto s = current_length / curve_length;
+  //     while (s > smooth_curve.curvature_x[index]) ++index;
 
-      const auto u = (s - smooth_curve.curvature_x[index - 1]) /
-                     (smooth_curve.curvature_x[index] -
-                      smooth_curve.curvature_x[index - 1]);
-      const auto curvature = (1 - u) * smooth_curve.curvature_y[index - 1] +
-                             u * smooth_curve.curvature_y[index];
-      smooth_curve.vertices[i].curvature = curvature - last_curvature;
-      last_curvature = curvature;
-      last_s = s;
-    }
-  }
+  //     const auto u = (s - smooth_curve.curvature_x[index - 1]) /
+  //                    (smooth_curve.curvature_x[index] -
+  //                     smooth_curve.curvature_x[index - 1]);
+  //     const auto curvature = (1 - u) * smooth_curve.curvature_y[index - 1] +
+  //                            u * smooth_curve.curvature_y[index];
+  //     smooth_curve.vertices[i].curvature = curvature - last_curvature;
+  //     last_curvature = curvature;
+  //     last_s = s;
+  //   }
+  // }
 
   const auto& mesh = scene.meshes[smooth_curve.mesh_id];
   decltype(smooth_curve.vertices) vertices{};
